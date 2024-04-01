@@ -304,8 +304,6 @@ namespace PASS2V2
                 // spawn a new mob
                 SpawnMob();
                 mobSpawnTimer.ResetTimer(true);
-
-                //testing
             }
         }
 
