@@ -41,7 +41,7 @@ namespace PASS2V2
 		protected Vector2 speed;
 
 		protected bool isShoot;
-		protected Vector2 shootLocOffset;
+		protected Vector2 shootLocOffset = new Vector2(WIDTH / 2, 0);
 
 		protected int health;
 		protected int damage;
@@ -86,6 +86,11 @@ namespace PASS2V2
             get { return points; }
             set { points = value; }
         }
+        public Vector2 ShootLocOffset
+        {
+            get { return shootLocOffset; }
+        }
+
 
         public Mob(SpriteBatch spriteBatch, Vector2 spawnLoc, Vector2 speed, int points, int health, int damage)
         {

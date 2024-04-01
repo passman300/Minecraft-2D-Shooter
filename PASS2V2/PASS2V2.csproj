@@ -62,9 +62,11 @@
     <Compile Include="Creeper.cs" />
     <Compile Include="Game1.cs" />
     <Compile Include="Level.cs" />
+    <Compile Include="Pillager.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Skeleton.cs" />
     <Compile Include="Tile.cs" />
     <Compile Include="Villager.cs" />
   </ItemGroup>

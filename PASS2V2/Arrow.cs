@@ -117,7 +117,9 @@ namespace PASS2V2
 
         public void Draw()
         {
-            spriteBatch.Draw(img, rec, Color.White);
+            // note the arrows, hitbox (rec) is off by one pixel to the real location
+            // due to rounding half the width of the arrow
+            spriteBatch.Draw(img, loc, Color.White);
         }
 
     }

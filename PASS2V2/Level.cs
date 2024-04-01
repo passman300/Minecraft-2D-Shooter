@@ -285,10 +285,18 @@ namespace PASS2V2
             {
                 mobs[i].Update(gameTime, player.Rectangle);
 
+                // check if the mob is exploding creeper and the damage isn't applied yet
                 if (mobs[i] is Creeper && !((Creeper)mobs[i]).IsExplodeApplied && mobs[i].State == Creeper.EXPLODE)
                 {
                     ((Creeper)mobs[i]).IsExplodeApplied = true;
                      player.Score -= mobs[i].Damage;
+                }
+
+                // check if the mob is shooting
+                else if (mobs[i].IsShoot)
+                {
+                    // add a new arrow from the center of the mob going down
+                    arrows.Add(new Arrow(spriteBatch, mobs[i].Location + mobs[i].ShootLocOffset, Arrow.ArrowDirection.Down, mobs[i].Damage));
                 }
 
                 if (mobs[i].State == Mob.REMOVE)
@@ -311,9 +319,10 @@ namespace PASS2V2
         {
             int randNum = Game1.rng.Next(0, 100);
 
-            if (randNum < 50) mobs.Add(new Villager(spriteBatch));
-            else if (randNum < 100) mobs.Add(new Creeper(spriteBatch));
+            //if (randNum < 50) mobs.Add(new Villager(spriteBatch));
+            //else if (randNum < 100) mobs.Add(new Creeper(spriteBatch));
 
+            mobs.Add(new Skeleton(spriteBatch));
 
             //if (randNum < levelStats[VILLAGER_ODDS_INDEX]) mobs.Add(new Villager(spriteBatch));
             //else if (randNum < levelStats[CREEPER_ODDS_INDEX]) mobs.Add(new Creeper(spriteBatch));

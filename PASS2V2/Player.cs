@@ -34,7 +34,7 @@ namespace PASS2V2
         public const int BASE_SPEED = 3;
         
         // player shooting speed
-        public const float BASE_SHOOTING_SPEED = 1000f / 3; // 3 shots per second
+        public const float BASE_SHOOTING_DUR = 1000f / 3; // 3 shots per second
 
         public const int BASE_DAMAGE = 1;
 
@@ -48,10 +48,10 @@ namespace PASS2V2
 
         private int speed;
 
-        private Timer shootTimer = new Timer(BASE_SHOOTING_SPEED, true);
+        private Timer shootTimer = new Timer(BASE_SHOOTING_DUR, true);
 
         private bool isShoot = false;
-        private Vector2 shootLocOffset = new Vector2(WIDTH/ 2, 0);
+        private Vector2 shootLocOffset = new Vector2(WIDTH / 2, 0);
 
         // player score
         private int score = 0;
@@ -83,7 +83,6 @@ namespace PASS2V2
         public Vector2 ShootLocOffset
         {
             get { return shootLocOffset; }
-            set { shootLocOffset = value; }
         }
 
         public int Score
@@ -147,9 +146,9 @@ namespace PASS2V2
                 // check if any shooting buffs
                 if (buffs[DOUBLE_SHOOTING_SPEED_INDEX])
                 {
-                    shootTimer.SetTargetTime(BASE_SHOOTING_SPEED / 2);
+                    shootTimer.SetTargetTime(BASE_SHOOTING_DUR / 2);
                 }
-                else shootTimer.SetTargetTime(BASE_SHOOTING_SPEED);
+                else shootTimer.SetTargetTime(BASE_SHOOTING_DUR);
 
                 shootTimer.ResetTimer(true);
             }
