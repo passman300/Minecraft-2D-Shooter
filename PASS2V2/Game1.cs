@@ -1,20 +1,7 @@
-﻿
-
-using Animation2D;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Media;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Configuration;
-using System.Runtime.InteropServices;
-using System.Runtime.Remoting.Channels;
-using System.Security.Cryptography;
 
 namespace PASS2V2
 {
@@ -35,6 +22,26 @@ namespace PASS2V2
 
         private const int NUM_LEVELS = 5;
 
+        // level title text
+        private const string SCORE_TEXT = "Score: ";
+        private const string LEVEL_TEXT = "Level ";
+        private const string KILLS_TEXT = "Kills: ";
+        private const string SHOTS_FIRED_TEXT = "Shots Fired: ";
+        private const string SHOTS_HIT_TEXT = "Shots Hit: ";
+        private const string HIT_PERCENT_TEXT = "Hit %: ";
+        private const string CONTINUE_TEXT = "PRESS SPACE TO CONTINUE";
+
+        // instruction text y location and title spacing
+        private const int STATS_TEXT_Y = 210;
+        private const int LEVEL_TEXT_Y = 270;
+        private const int TITLE_SPACING_Y = 4;
+        private const int TITLE_SPACING_X = 10;
+
+        // title box width and height and opacity
+        private const int STATS_BOX_WIDTH = SCREEN_WIDTH;
+        private const int STATS_BOX_HEIGHT = 275;
+        private const float STATS_BOX_OPACITY = 0.5f;
+
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
 
@@ -51,6 +58,9 @@ namespace PASS2V2
 
         // player
         private Player player;
+
+        // level stats
+        private Vector2 levelStatsLoc = new Vector2(TITLE_SPACING_X, LEVEL_TEXT_Y);
 
         // level stats
         private Level[] level = new Level[NUM_LEVELS];
@@ -133,7 +143,7 @@ namespace PASS2V2
             prevMouse = mouse;
             mouse = Mouse.GetState();
 
-            switch(gameState)
+            switch (gameState)
             {
                 case MENU:
                     break;
@@ -195,6 +205,7 @@ namespace PASS2V2
                     DrawGameplay();
                     break;
                 case LEVEL_STATS:
+                    DrawLevelStats();
                     break;
             }
 
@@ -202,8 +213,28 @@ namespace PASS2V2
 
             spriteBatch.End();
 
-
             base.Draw(gameTime);
+        }
+
+        private void DrawLevelStats()
+        {
+            spriteBatch.Draw(Assets.blankPixel, new Rectangle(0, STATS_TEXT_Y, STATS_BOX_WIDTH, STATS_BOX_HEIGHT), Color.Black * STATS_BOX_OPACITY);
+
+            // draw all the stats
+            spriteBatch.DrawString(Assets.minecraftEvening, SCORE_TEXT + player.Score, CenterTextX(Assets.minecraftEvening, SCORE_TEXT + " " + player.Score, STATS_TEXT_Y), Color.Yellow);
+
+            for (int i = 0; i < NUM_LEVELS; i++)
+            {
+                spriteBatch.DrawString(Assets.minecraftRegular, LEVEL_TEXT + (i + 1) + " score: " + level[i].LevelScore, RightTextX((int)levelStatsLoc.Y + (i + 1) * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0f), Color.White);
+            }
+
+            spriteBatch.DrawString(Assets.minecraftRegular, LEVEL_TEXT + curLevel, RightTextX((int)levelStatsLoc.Y + (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, KILLS_TEXT + level[curLevel].LevelKills, RightTextX((int)levelStatsLoc.Y + 2 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, SHOTS_FIRED_TEXT + level[curLevel].LevelShotsFired, RightTextX((int)levelStatsLoc.Y + 3 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, SHOTS_HIT_TEXT + level[curLevel].LevelShotsHit, RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
+            if (level[curLevel].LevelShotsFired == 0)
+                spriteBatch.DrawString(Assets.minecraftRegular, HIT_PERCENT_TEXT + 0, RightTextX((int)levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
+            else spriteBatch.DrawString(Assets.minecraftRegular, HIT_PERCENT_TEXT + 100 * level[curLevel].LevelShotsHit / level[curLevel].LevelShotsFired, RightTextX((int)levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
         }
 
         private void DrawGameplay()
@@ -213,7 +244,12 @@ namespace PASS2V2
 
         public static Vector2 CenterTextX(SpriteFont font, string text, int locY, float position = 0.5f)
         {
-            return new Vector2(Game1.SCREEN_WIDTH * position - (font.MeasureString(text).X / 2), locY);
+            return new Vector2(SCREEN_WIDTH * position - (font.MeasureString(text).X / 2), locY);
+        }
+
+        public static Vector2 RightTextX(int locY, float position = 0.5f)
+        {
+            return new Vector2(SCREEN_WIDTH * position + TITLE_SPACING_X, locY);
         }
 
         private void DrawMouseLoc()

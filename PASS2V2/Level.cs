@@ -33,7 +33,7 @@ namespace PASS2V2
 
         // instruction text y location and title spacing
         private const int INSTRUCTION_TEXT_Y = 210;
-        private const int TITLE_SPACING = 4;
+        private const int TITLE_SPACING_Y= 4;
         
         // title box width and height and opacity
         private const int TITLE_BOX_WIDTH = Game1.SCREEN_WIDTH;
@@ -51,7 +51,7 @@ namespace PASS2V2
         private const int MAX_SCREEN_MOBS_INDEX = 6;
         private const int MOBS_SPAWN_DUR__INDEX = 7;
 
-        // player movment box
+        // player movement box
         private const int PLAYER_MOVEMENT_BOX_Y = Game1.SCREEN_HEIGHT - Player.HEIGHT;
         private const float PLAYER_MOVEMENT_BOX_OPACITY = 0.5f;
 
@@ -128,6 +128,11 @@ namespace PASS2V2
             set { levelShotsHit = value; }
         }
 
+        public float[] LevelStats
+        {
+            get { return levelStats; }
+        }
+
         public Level(SpriteBatch spriteBatch, int levelNum)
         {
             this.spriteBatch = spriteBatch;
@@ -135,11 +140,11 @@ namespace PASS2V2
             this.levelNum = levelNum;
 
             introTitleLoc = Game1.CenterTextX(Assets.minecraftEvening, INTRO_TEXT, INSTRUCTION_TEXT_Y);
-            moveTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, MOVE_TEXT, (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(INTRO_TEXT).Y + TITLE_SPACING), 0.3333f);
-            shootTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, SHOOT_TEXT, (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(INTRO_TEXT).Y + TITLE_SPACING), 0.6666f);
-            goalTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, GOAL_TEXT, (int)(shootTitleLoc.Y + Assets.minecraftRegular.MeasureString(SHOOT_TEXT).Y + TITLE_SPACING));
-            tipsTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, TIPS_TEXT, (int)(goalTitleLoc.Y + Assets.minecraftRegular.MeasureString(GOAL_TEXT).Y + TITLE_SPACING));
-            beginTitleLoc = Game1.CenterTextX(Assets.minecraftBold, BEGIN_TEXT, (int)(tipsTitleLoc.Y + Assets.minecraftRegular.MeasureString(TIPS_TEXT).Y + TITLE_SPACING));
+            moveTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, MOVE_TEXT, (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(INTRO_TEXT).Y + TITLE_SPACING_Y), 0.3333f);
+            shootTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, SHOOT_TEXT, (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(INTRO_TEXT).Y + TITLE_SPACING_Y), 0.6666f);
+            goalTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, GOAL_TEXT, (int)(shootTitleLoc.Y + Assets.minecraftRegular.MeasureString(SHOOT_TEXT).Y + TITLE_SPACING_Y));
+            tipsTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, TIPS_TEXT, (int)(goalTitleLoc.Y + Assets.minecraftRegular.MeasureString(GOAL_TEXT).Y + TITLE_SPACING_Y));
+            beginTitleLoc = Game1.CenterTextX(Assets.minecraftBold, BEGIN_TEXT, (int)(tipsTitleLoc.Y + Assets.minecraftRegular.MeasureString(TIPS_TEXT).Y + TITLE_SPACING_Y));
 
             levelPath = $"Levels/{levelNum}.txt";
         }
@@ -453,7 +458,7 @@ namespace PASS2V2
             switch (levelState) 
             { 
                 case LevelStates.PreLevel:
-                    DrawPreLevel();
+                    DrawPreLevel(player);
                     break;
                 case LevelStates.GamePlay:
                     DrawGamePlay(player);
@@ -464,7 +469,7 @@ namespace PASS2V2
                  
         }
 
-        private void DrawPreLevel()
+        private void DrawPreLevel(Player player)
         {
             // draw title box
             spriteBatch.Draw(Assets.blankPixel, new Rectangle(0, Game1.SCREEN_HEIGHT / 2 - TITLE_BOX_HEIGHT / 2, TITLE_BOX_WIDTH, TITLE_BOX_HEIGHT), Color.Black * TITLE_BOX_OPACITY);
@@ -476,6 +481,11 @@ namespace PASS2V2
             spriteBatch.DrawString(Assets.minecraftRegular, GOAL_TEXT, goalTitleLoc, Color.White);
             spriteBatch.DrawString(Assets.minecraftRegular, TIPS_TEXT, tipsTitleLoc, Color.White);
             spriteBatch.DrawString(Assets.minecraftBold, BEGIN_TEXT, beginTitleLoc, Color.Yellow);
+
+            // draw player and movement box
+            spriteBatch.Draw(Assets.blankPixel, playerMovementBoxRec, Color.Black * PLAYER_MOVEMENT_BOX_OPACITY);
+            player.Draw();
+
         }
 
         /// <summary>

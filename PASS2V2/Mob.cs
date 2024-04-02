@@ -119,11 +119,16 @@ namespace PASS2V2
             bloodImg = Assets.bloodImgImg;
         }
 
-        public virtual void Update(GameTime gameTime, Rectangle playerRec)
-        {
+        /// <summary>
+        /// base update method for the mob
+        /// </summary>
+        /// <param name="gameTime"></param>
+        /// <param name="playerRec"></param>
+        public virtual void Update(GameTime gameTime, Rectangle playerRec) {        }
 
-        }
-
+        /// <summary>
+        /// base draw method for the mab
+        /// </summary>
         public virtual void Draw()
         {
 
