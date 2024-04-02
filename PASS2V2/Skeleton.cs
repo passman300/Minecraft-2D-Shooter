@@ -38,6 +38,7 @@ namespace PASS2V2
         public Skeleton (SpriteBatch spriteBatch) : base (spriteBatch, new Vector2(STARTING_X, 0 - Mob.HEIGHT), new Vector2(3.5f, 3.5f), 25, 4, 20)
         {
             skin = Assets.skeletonImg;
+            isShoot = true;
         }
 
         public override void Update(GameTime gameTime, Rectangle playerRec)

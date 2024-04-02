@@ -36,7 +36,7 @@ namespace PASS2V2
         public static Texture2D endermanImg;
 
         // mob effects
-        public static Texture2D bloodImg;
+        public static Texture2D bloodImgImg;
         public static Texture2D explodeImg;
         public static Texture2D shieldImg;
 
@@ -95,7 +95,7 @@ namespace PASS2V2
             endermanImg = Load<Texture2D>("Enderman_64");
 
             // load mob effects
-            bloodImg = Load<Texture2D>("Splat_64");
+            bloodImgImg = Load<Texture2D>("Splat_64");
             explodeImg = Load<Texture2D>("Explode_200");
             shieldImg = Load<Texture2D>("Shield_48");
 

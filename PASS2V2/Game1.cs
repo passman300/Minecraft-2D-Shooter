@@ -1,4 +1,6 @@
-﻿using Animation2D;
+﻿
+
+using Animation2D;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
@@ -9,6 +11,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Configuration;
 using System.Runtime.InteropServices;
 using System.Runtime.Remoting.Channels;
 using System.Security.Cryptography;
@@ -30,6 +33,8 @@ namespace PASS2V2
         public const int SCREEN_WIDTH = 640;
         public const int SCREEN_HEIGHT = 640;
 
+        private const int NUM_LEVELS = 5;
+
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
 
@@ -47,8 +52,9 @@ namespace PASS2V2
         // player
         private Player player;
 
-        private Level level;
-
+        // level stats
+        private Level[] level = new Level[NUM_LEVELS];
+        private int curLevel = 0;
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -92,8 +98,11 @@ namespace PASS2V2
             Assets.Content = Content;
             Assets.Initialize();
 
-            level = new Level(spriteBatch, 1);
-            level.Load();
+            for (int i = 0; i < NUM_LEVELS; i++)
+            {
+                level[i] = new Level(spriteBatch, i + 1);
+                level[i].Load();
+            }
 
             player = new Player(spriteBatch);
         }
@@ -134,15 +143,35 @@ namespace PASS2V2
                     UpdateGameplay(gameTime);
                     break;
                 case LEVEL_STATS:
+                    UpdateLevelStats();
                     break;
             }
 
             base.Update(gameTime);
         }
 
+        /// <summary>
+        /// update the gameplay of the whole game
+        /// </summary>
+        /// <param name="gameTime"></param> time passed within game
         private void UpdateGameplay(GameTime gameTime)
         {
-            level.Update(gameTime, player);
+            level[curLevel].Update(gameTime, player);
+
+            if (level[curLevel].LevelState == Level.LevelStates.PostLevel)
+            {
+                gameState = LEVEL_STATS;
+            }
+        }
+
+
+        private void UpdateLevelStats()
+        {
+            if (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space))
+            {
+                curLevel++;
+                gameState = GAMEPLAY;
+            }
         }
 
         /// <summary>
@@ -169,6 +198,8 @@ namespace PASS2V2
                     break;
             }
 
+            DrawMouseLoc();
+
             spriteBatch.End();
 
 
@@ -177,7 +208,17 @@ namespace PASS2V2
 
         private void DrawGameplay()
         {
-            level.Draw(player);
+            level[curLevel].Draw(player);
+        }
+
+        public static Vector2 CenterTextX(SpriteFont font, string text, int locY, float position = 0.5f)
+        {
+            return new Vector2(Game1.SCREEN_WIDTH * position - (font.MeasureString(text).X / 2), locY);
+        }
+
+        private void DrawMouseLoc()
+        {
+            spriteBatch.DrawString(Assets.debugFont, "Mouse: " + mouse.X + ", " + mouse.Y, new Vector2(mouse.X + 10, mouse.Y + 10), Color.White);
         }
     }
 }

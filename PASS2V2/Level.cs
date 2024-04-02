@@ -1,8 +1,11 @@
 ﻿using GameUtility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -13,12 +16,29 @@ namespace PASS2V2
 {
     public class Level
     {
-        public enum LevelState
+        public enum LevelStates
         {
             PreLevel = 0,
             GamePlay = 1,
             PostLevel = 2
         }
+
+        // level title text
+        private const string INTRO_TEXT = "INTRODUCTION";
+        private const string MOVE_TEXT = "MOVE: A,D or Arrows";
+        private const string SHOOT_TEXT = "SHOOT: Space";
+        private const string GOAL_TEXT = "GOAL: Kill mobs before they escape";
+        private const string TIPS_TEXT = "TIPS: Watch for movement patterns and unique abilities";
+        private const string BEGIN_TEXT = "PRESS SPACE TO BEGIN";
+
+        // instruction text y location and title spacing
+        private const int INSTRUCTION_TEXT_Y = 210;
+        private const int TITLE_SPACING = 4;
+        
+        // title box width and height and opacity
+        private const int TITLE_BOX_WIDTH = Game1.SCREEN_WIDTH;
+        private const int TITLE_BOX_HEIGHT = 275;
+        private const float TITLE_BOX_OPACITY = 0.5f;
 
         // level loading stats indexes
         private const int NUM_LEVEL_LOADING_STATS = 8;
@@ -37,7 +57,7 @@ namespace PASS2V2
 
         // score display
         private const int SCORE_DISPLAY_X = 10;
-        private const int SCORE_DISPLAY_Y = PLAYER_MOVEMENT_BOX_Y - 20;
+        private const int SCORE_DISPLAY_Y = PLAYER_MOVEMENT_BOX_Y - 30;
 
         // default level stats
         private const string DEFAULT_LEVEL_STATS = "20,20,20,20,20,1,1,1";
@@ -51,7 +71,15 @@ namespace PASS2V2
 
         private int levelNum;
 
-        private LevelState levelState = LevelState.GamePlay;
+        private LevelStates levelState = LevelStates.PreLevel;
+
+        // pre level titles locations
+        private Vector2 introTitleLoc;
+        private Vector2 moveTitleLoc;
+        private Vector2 shootTitleLoc;
+        private Vector2 goalTitleLoc;
+        private Vector2 tipsTitleLoc;
+        private Vector2 beginTitleLoc;
 
         private float[] levelStats = new float[NUM_LEVEL_LOADING_STATS];
 
@@ -69,6 +97,12 @@ namespace PASS2V2
         private int levelKills = 0;
         private int levelShotsFired = 0;
         private int levelShotsHit = 0;
+
+        public LevelStates LevelState
+        {
+            get { return levelState; }
+            set { levelState = value; }
+        }
 
         public int LevelScore
         {
@@ -99,6 +133,13 @@ namespace PASS2V2
             this.spriteBatch = spriteBatch;
 
             this.levelNum = levelNum;
+
+            introTitleLoc = Game1.CenterTextX(Assets.minecraftEvening, INTRO_TEXT, INSTRUCTION_TEXT_Y);
+            moveTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, MOVE_TEXT, (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(INTRO_TEXT).Y + TITLE_SPACING), 0.3333f);
+            shootTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, SHOOT_TEXT, (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(INTRO_TEXT).Y + TITLE_SPACING), 0.6666f);
+            goalTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, GOAL_TEXT, (int)(shootTitleLoc.Y + Assets.minecraftRegular.MeasureString(SHOOT_TEXT).Y + TITLE_SPACING));
+            tipsTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, TIPS_TEXT, (int)(goalTitleLoc.Y + Assets.minecraftRegular.MeasureString(GOAL_TEXT).Y + TITLE_SPACING));
+            beginTitleLoc = Game1.CenterTextX(Assets.minecraftBold, BEGIN_TEXT, (int)(tipsTitleLoc.Y + Assets.minecraftRegular.MeasureString(TIPS_TEXT).Y + TITLE_SPACING));
 
             levelPath = $"Levels/{levelNum}.txt";
         }
@@ -178,8 +219,6 @@ namespace PASS2V2
             // catch the file not found exception
             catch (FileNotFoundException fnfe)
             {
-                inFile.Close();
-
                 // display the error message
                 Console.WriteLine(fnfe.Message);
 
@@ -216,7 +255,7 @@ namespace PASS2V2
                 // for each row write the type to the file with a comma in between
                 for (int j = 0; j < Game1.SCREEN_WIDTH / Tile.WIDTH - 1; j++)
                 {
-                    Console.Write((int)type + ",");
+                    outFile.Write((int)type + ",");
                 }
 
                 outFile.WriteLine((int)type);
@@ -233,13 +272,23 @@ namespace PASS2V2
         {
             switch (levelState)
             {
-                case LevelState.PreLevel:
+                case LevelStates.PreLevel:
+                    UpdatePreLevel();
                     break;
-                case LevelState.GamePlay:
+                case LevelStates.GamePlay:
                     UpdateGamePlay(gameTime, player);
                     break;
-                case LevelState.PostLevel:
-                    break;
+            }
+        }
+
+        private void UpdatePreLevel()
+        {
+            if (Game1.kb.IsKeyDown(Keys.Space) && !Game1.prevKb.IsKeyDown(Keys.Space))
+            {
+                levelState = LevelStates.GamePlay;
+                // spawn a new mob
+                SpawnMob();
+                mobSpawnTimer.ResetTimer(true);
             }
         }
 
@@ -253,6 +302,9 @@ namespace PASS2V2
             UpdateMobs(gameTime, player);
 
             UpdateArrows(player);
+
+            // check if game over when there is no active mobs and no more to spawn
+            if (mobs.Count == 0 && mobsSpawned == levelStats[MAX_MOBS_INDEX]) levelState = LevelStates.PostLevel;
         }
 
 
@@ -270,7 +322,7 @@ namespace PASS2V2
             // check if player shoots a arrow
             if (player.IsShoot)
             {
-                arrows.Add(new Arrow(spriteBatch, player.Location + player.ShootLocOffset, Arrow.ArrowDirection.Up, Player.BASE_DAMAGE));
+                arrows.Add(new Arrow(spriteBatch, player.Location + player.ShootLocOffset, Arrow.ArrowDirection.Up, player.Damage));
                 levelShotsFired++;
             }
         }
@@ -319,13 +371,11 @@ namespace PASS2V2
         {
             int randNum = Game1.rng.Next(0, 100);
 
-            //if (randNum < 50) mobs.Add(new Villager(spriteBatch));
-            //else if (randNum < 100) mobs.Add(new Creeper(spriteBatch));
-
-            mobs.Add(new Skeleton(spriteBatch));
-
-            //if (randNum < levelStats[VILLAGER_ODDS_INDEX]) mobs.Add(new Villager(spriteBatch));
-            //else if (randNum < levelStats[CREEPER_ODDS_INDEX]) mobs.Add(new Creeper(spriteBatch));
+            if (randNum < levelStats[VILLAGER_ODDS_INDEX]) mobs.Add(new Villager(spriteBatch));
+            else if (randNum < levelStats[CREEPER_ODDS_INDEX] + levelStats[VILLAGER_ODDS_INDEX]) mobs.Add(new Creeper(spriteBatch));
+            else if (randNum < levelStats[SKELETON_ODDS_INDEX] + levelStats[CREEPER_ODDS_INDEX] + levelStats[VILLAGER_ODDS_INDEX]) mobs.Add(new Skeleton(spriteBatch));
+            else if (randNum < levelStats[PILLAGER_ODDS_INDEX] + levelStats[SKELETON_ODDS_INDEX] + levelStats[CREEPER_ODDS_INDEX] + levelStats[VILLAGER_ODDS_INDEX]) mobs.Add(new Pillager(spriteBatch));
+            else if (randNum < levelStats[ENDERMAN_ODDS_INDEX] + levelStats[PILLAGER_ODDS_INDEX] + levelStats[SKELETON_ODDS_INDEX] + levelStats[CREEPER_ODDS_INDEX] + levelStats[VILLAGER_ODDS_INDEX]) mobs.Add(new Enderman(spriteBatch));
 
             mobsSpawned++;
         }
@@ -345,15 +395,24 @@ namespace PASS2V2
                 {
                     if (arrows[i].Rectangle.Intersects(mobs[j].Rectangle) && mobs[j].State == Mob.ALIVE)
                     {
-                        mobs[j].Health -= arrows[i].Damage;
-                        levelShotsHit++;
-
-                        if (mobs[j].Health <= 0)
+                        // check if the mob has a shield
+                        if (mobs[j].IsSheild)
                         {
-                            levelKills++;
-                            mobs[j].State = Mob.DEAD;     
-                            levelScore += mobs[j].Points;
-                            player.Score += mobs[j].Points;
+                            mobs[j].IsSheild = false;
+
+                        }
+                        else
+                        {
+                            mobs[j].Health -= arrows[i].Damage;
+                            levelShotsHit++;
+
+                            if (mobs[j].Health <= 0)
+                            {
+                                levelKills++;
+                                mobs[j].State = Mob.DEAD;
+                                levelScore += mobs[j].Points;
+                                player.Score += mobs[j].Points;
+                            }
                         }
 
                         arrows[i].State = Arrow.ArrowState.Remove;
@@ -361,6 +420,7 @@ namespace PASS2V2
                     }
                 }
 
+                // check if arrows hit player
                 if (arrows[i].Direction == Arrow.ArrowDirection.Down)
                 {
                     // check if arrows hit player
@@ -368,6 +428,9 @@ namespace PASS2V2
                     {
                         player.Score = Math.Max(player.Score - arrows[i].Damage, 0);
                         arrows[i].State = Arrow.ArrowState.Remove;
+
+                        // reset all player buffs
+                        //player.ResetBuffs();
                     }
                 }
 
@@ -389,22 +452,38 @@ namespace PASS2V2
 
             switch (levelState) 
             { 
-                case LevelState.PreLevel:
+                case LevelStates.PreLevel:
+                    DrawPreLevel();
                     break;
-                case LevelState.GamePlay:
+                case LevelStates.GamePlay:
                     DrawGamePlay(player);
                     break;
-                case LevelState.PostLevel:
+                case LevelStates.PostLevel:
                     break;
             }
                  
         }
 
+        private void DrawPreLevel()
+        {
+            // draw title box
+            spriteBatch.Draw(Assets.blankPixel, new Rectangle(0, Game1.SCREEN_HEIGHT / 2 - TITLE_BOX_HEIGHT / 2, TITLE_BOX_WIDTH, TITLE_BOX_HEIGHT), Color.Black * TITLE_BOX_OPACITY);
+
+            // draw introduction and tips text
+            spriteBatch.DrawString(Assets.minecraftEvening, INTRO_TEXT, introTitleLoc, Color.CornflowerBlue);
+            spriteBatch.DrawString(Assets.minecraftRegular, MOVE_TEXT, moveTitleLoc, Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, SHOOT_TEXT, shootTitleLoc, Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, GOAL_TEXT, goalTitleLoc, Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, TIPS_TEXT, tipsTitleLoc, Color.White);
+            spriteBatch.DrawString(Assets.minecraftBold, BEGIN_TEXT, beginTitleLoc, Color.Yellow);
+        }
+
+        /// <summary>
+        /// draw all the gameplay objects
+        /// </summary>
+        /// <param name="player"></param>
         private void DrawGamePlay(Player player)
         {
-            
-
-            
             // draw arrows
             DrawArrows();
 
@@ -449,12 +528,15 @@ namespace PASS2V2
             spriteBatch.DrawString(Assets.minecraftRegular, "Score: " + playerScore, new Vector2(SCORE_DISPLAY_X, SCORE_DISPLAY_Y), Color.Yellow);
         }
 
+
+
         private void DEBUG_MENU()
         {
             spriteBatch.DrawString(Assets.debugFont, "MOBS LIST: " + mobs.Count, new Vector2(3, 0), Color.White);
             spriteBatch.DrawString(Assets.debugFont, "MOBS SPAWNED: " + mobsSpawned, new Vector2(3, 10), Color.White);
             spriteBatch.DrawString(Assets.debugFont, "ARROWS LIST: " + arrows.Count, new Vector2(3, 20), Color.White);
         }
+
 
     }
 }

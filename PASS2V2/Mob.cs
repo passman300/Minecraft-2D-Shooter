@@ -26,12 +26,13 @@ namespace PASS2V2
         // state of the mob
         protected int state = ALIVE;
 
-        // death timer for how long the blood remains
+        // death timer for how long the bloodImg remains
         protected Timer deathTimer = new Timer(DEATH_DUR, true);
 
 		// textures of the mob
 		protected Texture2D skin;
-		protected Texture2D blood;
+		protected Texture2D bloodImg;
+        protected Texture2D sheildImg;
 
 		// location and rectangle of the mob
 		protected Vector2 spawnLoc;
@@ -40,17 +41,19 @@ namespace PASS2V2
 
 		protected Vector2 speed;
 
-		protected bool isShoot;
+		protected bool isShoot = false;
 		protected Vector2 shootLocOffset = new Vector2(WIDTH / 2, 0);
 
-		protected int health;
+        protected bool isSheild = false;
+        protected Vector2 shieldOffset = new Vector2(WIDTH * 0.45f, HEIGHT - Assets.shieldImg.Height);
+
+        protected int health;
 		protected int damage;
 		protected int points;
 
         public bool IsShoot
         {
             get { return isShoot; }
-            set { isShoot = value; }
         }
 
         public int State
@@ -86,11 +89,17 @@ namespace PASS2V2
             get { return points; }
             set { points = value; }
         }
+
         public Vector2 ShootLocOffset
         {
             get { return shootLocOffset; }
         }
 
+        public bool IsSheild
+        {
+            get { return isSheild; }
+            set { isSheild = value; }
+        }
 
         public Mob(SpriteBatch spriteBatch, Vector2 spawnLoc, Vector2 speed, int points, int health, int damage)
         {
@@ -107,7 +116,7 @@ namespace PASS2V2
             this.health = health;
             this.damage = damage;
 
-            blood = Assets.bloodImg;
+            bloodImg = Assets.bloodImgImg;
         }
 
         public virtual void Update(GameTime gameTime, Rectangle playerRec)
@@ -124,7 +133,7 @@ namespace PASS2V2
 					spriteBatch.Draw(skin, rec, Color.White);
 					break;
 				case DEAD:
-					spriteBatch.Draw(blood, rec, Color.White);
+					spriteBatch.Draw(bloodImg, rec, Color.White);
 					break;
 			}
         }

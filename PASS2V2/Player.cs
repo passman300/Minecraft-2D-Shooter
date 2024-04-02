@@ -60,7 +60,7 @@ namespace PASS2V2
         private int damage = BASE_DAMAGE;
 
         // list of upgrades
-        public bool[] buffs = new bool[NUM_UPGRADES];
+        private bool[] buffs = new bool[NUM_UPGRADES];
 
         public bool IsShoot
         {
@@ -100,14 +100,9 @@ namespace PASS2V2
         public int Damage
         {
             get 
-            { 
-                return damage;
-            }
-            set
             {
-                // check if player has double damage
-                if (buffs[TRIPLE_DAMAGE_INDEX]) value *= 3;
-                damage = value;
+                if (buffs[TRIPLE_DAMAGE_INDEX]) return damage * 3;
+                return damage;
             }
         }
 
@@ -157,7 +152,7 @@ namespace PASS2V2
         private void UpdateLocation(GameTime gameTime)
         {
             // check if speed buff
-            if (buffs[DOUBLE_SPEED_INDEX]) speed *= 2;
+            if (buffs[DOUBLE_SPEED_INDEX]) speed = 2 * BASE_SPEED;
             else speed = BASE_SPEED;
 
             // update player position base on key presses
@@ -172,6 +167,20 @@ namespace PASS2V2
         public void Draw()
         {
             spriteBatch.Draw(skin, rec, Color.White);
+        }
+
+        public void ResetBuffs()
+        {
+            for (int i = 0; i < NUM_UPGRADES; i++) buffs[i] = false;
+
+            damage = BASE_DAMAGE;
+            shootTimer.SetTargetTime(BASE_SHOOTING_DUR);
+            speed = BASE_SPEED;
+        }
+
+        public void AddBuff(int buffIndex)
+        {
+            buffs[buffIndex] = true;
         }
     }
 }

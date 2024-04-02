@@ -93,7 +93,7 @@ namespace PASS2V2
                     spriteBatch.Draw(explodeImg, new Vector2(rec.Center.X - explodeImg.Width / 2, rec.Center.Y - explodeImg.Height / 2), Color.White);
                     break;
                 case DEAD:
-                    spriteBatch.Draw(blood, rec, Color.White);
+                    spriteBatch.Draw(bloodImg, rec, Color.White);
                     break;
             }
         }
