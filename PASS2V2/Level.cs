@@ -3,14 +3,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PASS2V2
 {
@@ -33,8 +27,8 @@ namespace PASS2V2
 
         // instruction text y location and title spacing
         private const int INSTRUCTION_TEXT_Y = 210;
-        private const int TITLE_SPACING_Y= 4;
-        
+        private const int TITLE_SPACING_Y = 4;
+
         // title box width and height and opacity
         private const int TITLE_BOX_WIDTH = Game1.SCREEN_WIDTH;
         private const int TITLE_BOX_HEIGHT = 275;
@@ -59,8 +53,13 @@ namespace PASS2V2
         private const int SCORE_DISPLAY_X = 10;
         private const int SCORE_DISPLAY_Y = PLAYER_MOVEMENT_BOX_Y - 30;
 
+        // buff icon display
+        private const int BUFF_ICON_Y = 390;
+        private const int BUFF_ICON_X = 600;
+        private const int BUFF_ICON_SPACER_Y = 5;
+
         // default level stats
-        private const string DEFAULT_LEVEL_STATS = "20,20,20,20,20,1,1,1";
+        private const string DEFAULT_LEVEL_STATS = "20,20,20,20,20,10,2,1";
 
         private string levelPath;
 
@@ -97,6 +96,10 @@ namespace PASS2V2
         private int levelKills = 0;
         private int levelShotsFired = 0;
         private int levelShotsHit = 0;
+
+        // buff icons varibles
+        private Texture2D[] buffIconImgs = new Texture2D[Player.NUM_UPGRADES];
+        private Vector2[] buffIconLocs = new Vector2[Player.NUM_UPGRADES];
 
         public LevelStates LevelState
         {
@@ -135,10 +138,13 @@ namespace PASS2V2
 
         public Level(SpriteBatch spriteBatch, int levelNum)
         {
+            // save the spritebatch
             this.spriteBatch = spriteBatch;
 
+            // save the level number
             this.levelNum = levelNum;
 
+            // set the title locations 
             introTitleLoc = Game1.CenterTextX(Assets.minecraftEvening, INTRO_TEXT, INSTRUCTION_TEXT_Y);
             moveTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, MOVE_TEXT, (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(INTRO_TEXT).Y + TITLE_SPACING_Y), 0.3333f);
             shootTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, SHOOT_TEXT, (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(INTRO_TEXT).Y + TITLE_SPACING_Y), 0.6666f);
@@ -146,7 +152,20 @@ namespace PASS2V2
             tipsTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, TIPS_TEXT, (int)(goalTitleLoc.Y + Assets.minecraftRegular.MeasureString(GOAL_TEXT).Y + TITLE_SPACING_Y));
             beginTitleLoc = Game1.CenterTextX(Assets.minecraftBold, BEGIN_TEXT, (int)(tipsTitleLoc.Y + Assets.minecraftRegular.MeasureString(TIPS_TEXT).Y + TITLE_SPACING_Y));
 
+            // set the level path
             levelPath = $"Levels/{levelNum}.txt";
+
+            // set the buff icons
+            buffIconImgs[Player.DOUBLE_SPEED_INDEX] = Assets.speedIconImg;
+            buffIconImgs[Player.TRIPLE_DAMAGE_INDEX] = Assets.damageIconImg;
+            buffIconImgs[Player.DOUBLE_FIRE_RATE_INDEX] = Assets.fireRateIconImg;
+            buffIconImgs[Player.DOUBLE_POINTS_INDEX] = Assets.pointMutiIconImg;
+
+            // set buff icon locations
+            buffIconLocs[Player.DOUBLE_SPEED_INDEX] = new Vector2(BUFF_ICON_X, BUFF_ICON_Y);
+            buffIconLocs[Player.TRIPLE_DAMAGE_INDEX] = new Vector2(BUFF_ICON_X, BUFF_ICON_Y + buffIconImgs[Player.TRIPLE_DAMAGE_INDEX].Height + BUFF_ICON_SPACER_Y);
+            buffIconLocs[Player.DOUBLE_FIRE_RATE_INDEX] = new Vector2(BUFF_ICON_X, BUFF_ICON_Y + Player.DOUBLE_FIRE_RATE_INDEX * (buffIconImgs[Player.DOUBLE_FIRE_RATE_INDEX].Height + BUFF_ICON_SPACER_Y));
+            buffIconLocs[Player.DOUBLE_POINTS_INDEX] = new Vector2(BUFF_ICON_X, BUFF_ICON_Y + Player.DOUBLE_POINTS_INDEX * (buffIconImgs[Player.DOUBLE_FIRE_RATE_INDEX].Height + BUFF_ICON_SPACER_Y));
         }
 
         /// <summary>
@@ -346,7 +365,8 @@ namespace PASS2V2
                 if (mobs[i] is Creeper && !((Creeper)mobs[i]).IsExplodeApplied && mobs[i].State == Creeper.EXPLODE)
                 {
                     ((Creeper)mobs[i]).IsExplodeApplied = true;
-                     player.Score -= mobs[i].Damage;
+                    levelScore = Math.Max(levelScore - mobs[i].Damage, 0);
+                    player.Score = Math.Max(levelScore - mobs[i].Damage, 0);
                 }
 
                 // check if the mob is shooting
@@ -431,11 +451,12 @@ namespace PASS2V2
                     // check if arrows hit player
                     if (arrows[i].Rectangle.Intersects(player.Rectangle))
                     {
+                        levelScore = Math.Max(levelScore - arrows[i].Damage, 0);
                         player.Score = Math.Max(player.Score - arrows[i].Damage, 0);
                         arrows[i].State = Arrow.ArrowState.Remove;
 
                         // reset all player buffs
-                        //player.ResetBuffs();
+                        player.ResetBuffs();
                     }
                 }
 
@@ -455,8 +476,8 @@ namespace PASS2V2
         {
             DrawTiles();
 
-            switch (levelState) 
-            { 
+            switch (levelState)
+            {
                 case LevelStates.PreLevel:
                     DrawPreLevel(player);
                     break;
@@ -466,7 +487,7 @@ namespace PASS2V2
                 case LevelStates.PostLevel:
                     break;
             }
-                 
+
         }
 
         private void DrawPreLevel(Player player)
@@ -509,7 +530,15 @@ namespace PASS2V2
             // draw score
             DrawScore(player.Score);
 
-            DEBUG_MENU();
+            // draw the player buffs
+            for (int i = 0; i < buffIconImgs.Length; i++)
+            {
+                // check if the buff is activated
+                if (player.UsedBuffs[i]) spriteBatch.Draw(buffIconImgs[i], buffIconLocs[i], Color.White);
+                else spriteBatch.Draw(buffIconImgs[i], buffIconLocs[i], Color.White * 0.5f);
+            }
+
+            DEBUG_MENU(player);
         }
 
         private void DrawArrows()
@@ -540,11 +569,13 @@ namespace PASS2V2
 
 
 
-        private void DEBUG_MENU()
+        private void DEBUG_MENU(Player player)
         {
             spriteBatch.DrawString(Assets.debugFont, "MOBS LIST: " + mobs.Count, new Vector2(3, 0), Color.White);
             spriteBatch.DrawString(Assets.debugFont, "MOBS SPAWNED: " + mobsSpawned, new Vector2(3, 10), Color.White);
             spriteBatch.DrawString(Assets.debugFont, "ARROWS LIST: " + arrows.Count, new Vector2(3, 20), Color.White);
+        
+            spriteBatch.DrawString(Assets.debugFont, "Player Damage" + player.Damage, new Vector2(3, 30), Color.White);
         }
 
 

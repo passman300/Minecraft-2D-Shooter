@@ -100,7 +100,7 @@ namespace PASS2V2
 
         private bool IsWithinRange(Rectangle playerRec)
         {
-            if (GetDistance(playerRec.Location.ToVector2(), rec.Center.ToVector2()) <= EXPLODE_RADIUS || GetDistance(new Vector2(playerRec.Right, playerRec.Top), rec.Center.ToVector2()) <= EXPLODE_RADIUS) return true;
+            if (GetDistance(playerRec.Center.ToVector2(), rec.Center.ToVector2()) <= EXPLODE_RADIUS) return true;
             return false;
         }
 

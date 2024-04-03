@@ -20,7 +20,7 @@ namespace PASS2V2
         public const int NUM_UPGRADES = 4;
         public const int DOUBLE_SPEED_INDEX = 0;
         public const int TRIPLE_DAMAGE_INDEX = 1;
-        public const int DOUBLE_SHOOTING_SPEED_INDEX = 2;
+        public const int DOUBLE_FIRE_RATE_INDEX = 2;
         public const int DOUBLE_POINTS_INDEX = 3;
 
         // player dimensions
@@ -106,6 +106,11 @@ namespace PASS2V2
             }
         }
 
+        public bool[] UsedBuffs
+        {
+            get { return buffs; }
+        }
+
         public Player(SpriteBatch spriteBatch)
         {
             this.spriteBatch = spriteBatch;
@@ -139,7 +144,7 @@ namespace PASS2V2
                 isShoot = true;
 
                 // check if any shooting buffs
-                if (buffs[DOUBLE_SHOOTING_SPEED_INDEX])
+                if (buffs[DOUBLE_FIRE_RATE_INDEX])
                 {
                     shootTimer.SetTargetTime(BASE_SHOOTING_DUR / 2);
                 }

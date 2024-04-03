@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -53,6 +54,12 @@ namespace PASS2V2
         public static Texture2D buttonImg;
         // blank pixel
         public static Texture2D blankPixel;
+
+        // shop button images
+        public static Texture2D speedShopImg;
+        public static Texture2D damageShopImg;
+        public static Texture2D fireRateShopImg;
+        public static Texture2D pointMutiShopImg;
 
         // upgrades icon images
         public static Texture2D damageIconImg;
@@ -114,11 +121,17 @@ namespace PASS2V2
             // load blank pixel
             blankPixel = Load<Texture2D>("BlankPixel");
 
+            // shop button images
+            speedShopImg = Load<Texture2D>("ShopSpeedBoost_300");
+            damageShopImg = Load<Texture2D>("ShopDamageBoost_300");
+            fireRateShopImg = Load<Texture2D>("ShopFireRateBoost_300");
+            pointMutiShopImg = Load<Texture2D>("ShopPointsBoost_300");
+
             // load upgrades icon images
+            speedIconImg = Load<Texture2D>("IconSpeed_32");
             damageIconImg = Load<Texture2D>("IconDamage_32");
             fireRateIconImg = Load<Texture2D>("IconFireRate_32");
             pointMutiIconImg = Load<Texture2D>("IconPoints_32");
-            speedIconImg = Load<Texture2D>("IconSpeed_32");
         }
 
         private static T Load<T>(string file) => Content.Load<T>($"{loadPath}/{file}");
