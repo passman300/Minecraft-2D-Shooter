@@ -310,8 +310,8 @@ namespace PASS2V2
             if (Game1.kb.IsKeyDown(Keys.Space) && !Game1.prevKb.IsKeyDown(Keys.Space))
             {
                 levelState = LevelStates.GamePlay;
-                // spawn a new mob
-                SpawnMob();
+
+                // reset the mob spawn timer
                 mobSpawnTimer.ResetTimer(true);
             }
         }
@@ -370,7 +370,7 @@ namespace PASS2V2
                 }
 
                 // check if the mob is shooting
-                else if (mobs[i].IsShoot)
+                else if (mobs[i].IsShoot && mobs[i].State == Mob.ALIVE) // rare case where you hit the skeleton at the same time is shots an arrow
                 {
                     // add a new arrow from the center of the mob going down
                     arrows.Add(new Arrow(spriteBatch, mobs[i].Location + mobs[i].ShootLocOffset, Arrow.ArrowDirection.Down, mobs[i].Damage));
@@ -567,7 +567,17 @@ namespace PASS2V2
             spriteBatch.DrawString(Assets.minecraftRegular, "Score: " + playerScore, new Vector2(SCORE_DISPLAY_X, SCORE_DISPLAY_Y), Color.Yellow);
         }
 
-
+        public void LevelReset()
+        {
+            levelState = LevelStates.PreLevel;
+            levelKills = 0;
+            levelScore = 0;
+            levelShotsFired = 0;
+            levelShotsHit = 0;
+            mobsSpawned = 0;
+            mobs.Clear();
+            arrows.Clear();
+        }
 
         private void DEBUG_MENU(Player player)
         {

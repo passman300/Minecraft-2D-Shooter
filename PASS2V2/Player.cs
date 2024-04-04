@@ -54,6 +54,7 @@ namespace PASS2V2
         private Vector2 shootLocOffset = new Vector2(WIDTH / 2, 0);
 
         // player score
+        private int highScore = 0;
         private int score = 0;
 
         // player damage
@@ -109,6 +110,12 @@ namespace PASS2V2
         public bool[] UsedBuffs
         {
             get { return buffs; }
+        }
+
+        public int HighScore
+        {
+            get { return highScore; }
+            set { highScore = value; }
         }
 
         public Player(SpriteBatch spriteBatch)

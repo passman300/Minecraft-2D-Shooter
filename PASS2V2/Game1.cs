@@ -36,6 +36,10 @@ namespace PASS2V2
         private const int MENU_BUTTON_WIDTH = 400;
         private const int MENU_BUTTON_HEIGHT = 127;
 
+        // menu button text offset
+        private const int MENU_BUTTON_TEXT_OFFSET_X = -5;
+        private const int MENU_BUTTON_TEXT_OFFSET_Y = 5;
+
         // number of levels
         private const int NUM_LEVELS = 5;
 
@@ -152,23 +156,7 @@ namespace PASS2V2
             Assets.Content = Content;
             Assets.Initialize();
 
-            // load menu buttons rectangles and buttons
-            menuButtonRecs[PLAY_BUTTON_INDEX] = new Rectangle((int)CenterRectangleX(MENU_BUTTON_WIDTH, MENU_BUTTON_Y).X, MENU_BUTTON_Y, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT);
-            menuButtonRecs[STATS_BUTTON_INDEX] = new Rectangle((int)CenterRectangleX(MENU_BUTTON_WIDTH, MENU_BUTTON_Y + MENU_BUTTON_SPACER_Y + MENU_BUTTON_HEIGHT).X, MENU_BUTTON_Y + MENU_BUTTON_SPACER_Y + MENU_BUTTON_HEIGHT, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT);
-            menuButtonRecs[EXIT_BUTTON_INDEX] = new Rectangle((int)CenterRectangleX(MENU_BUTTON_WIDTH, (MENU_BUTTON_SPACER_Y + MENU_BUTTON_HEIGHT) * EXIT_BUTTON_INDEX).X, MENU_BUTTON_Y + (MENU_BUTTON_SPACER_Y + MENU_BUTTON_HEIGHT) * EXIT_BUTTON_INDEX, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT);
-
-            // load menu buttons
-            menuButtons[PLAY_BUTTON_INDEX] = new Button(Assets.buttonImg, menuButtonRecs[PLAY_BUTTON_INDEX], Color.White);
-            menuButtons[STATS_BUTTON_INDEX] = new Button(Assets.buttonImg, menuButtonRecs[STATS_BUTTON_INDEX], Color.White);
-            menuButtons[EXIT_BUTTON_INDEX] = new Button(Assets.buttonImg, menuButtonRecs[EXIT_BUTTON_INDEX], Color.White);
-
-            // intilize the button hovers and clicks
-            menuButtons[PLAY_BUTTON_INDEX].Clicked += PlayButtonClick;
-            menuButtons[STATS_BUTTON_INDEX].Clicked += PlayButtonClick;
-            menuButtons[STATS_BUTTON_INDEX].Clicked += PlayButtonClick;
-
-
-
+            LoadButtons();
 
             // load and initialize all levels
             InitializeLevels();
@@ -194,6 +182,36 @@ namespace PASS2V2
             shopCost[Player.DOUBLE_FIRE_RATE_INDEX] = SHOP_FIRE_COST;
             shopCost[Player.DOUBLE_POINTS_INDEX] = SHOP_POINTS_COST;
         }
+
+        private void LoadButtons()
+        {
+            // load menu buttons rectangles and buttons
+            menuButtonRecs[PLAY_BUTTON_INDEX] = new Rectangle((int)CenterRectangleX(MENU_BUTTON_WIDTH, MENU_BUTTON_Y).X, MENU_BUTTON_Y, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT);
+            menuButtonRecs[STATS_BUTTON_INDEX] = new Rectangle((int)CenterRectangleX(MENU_BUTTON_WIDTH, MENU_BUTTON_Y + MENU_BUTTON_SPACER_Y + MENU_BUTTON_HEIGHT).X, MENU_BUTTON_Y + MENU_BUTTON_SPACER_Y + MENU_BUTTON_HEIGHT, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT);
+            menuButtonRecs[EXIT_BUTTON_INDEX] = new Rectangle((int)CenterRectangleX(MENU_BUTTON_WIDTH, (MENU_BUTTON_SPACER_Y + MENU_BUTTON_HEIGHT) * EXIT_BUTTON_INDEX).X, MENU_BUTTON_Y + (MENU_BUTTON_SPACER_Y + MENU_BUTTON_HEIGHT) * EXIT_BUTTON_INDEX, MENU_BUTTON_WIDTH, MENU_BUTTON_HEIGHT);
+
+            // load menu buttons
+            menuButtons[PLAY_BUTTON_INDEX] = new Button(Assets.buttonImg, menuButtonRecs[PLAY_BUTTON_INDEX], Color.White);
+            menuButtons[STATS_BUTTON_INDEX] = new Button(Assets.buttonImg, menuButtonRecs[STATS_BUTTON_INDEX], Color.White);
+            menuButtons[EXIT_BUTTON_INDEX] = new Button(Assets.buttonImg, menuButtonRecs[EXIT_BUTTON_INDEX], Color.White);
+
+            // set the text as if it was not hovered
+            PlayButtonExit();
+            StatsButtonExit();
+            ExitButtonExit();
+
+            // intilize the button hovers and clicks
+            menuButtons[PLAY_BUTTON_INDEX].Clicked += PlayButtonClick;
+            menuButtons[PLAY_BUTTON_INDEX].HoverEnter += () => PlayButtonHover();
+            menuButtons[PLAY_BUTTON_INDEX].HoverExit += () => PlayButtonExit();
+            menuButtons[STATS_BUTTON_INDEX].Clicked += StatsButtonClick;
+            menuButtons[STATS_BUTTON_INDEX].HoverEnter += () => StatsButtonHover();
+            menuButtons[STATS_BUTTON_INDEX].HoverExit += () => StatsButtonExit();
+            menuButtons[EXIT_BUTTON_INDEX].Clicked += ExitButtonClick;
+            menuButtons[EXIT_BUTTON_INDEX].HoverEnter += () => ExitButtonHover();
+            menuButtons[EXIT_BUTTON_INDEX].HoverExit += () => ExitButtonExit();
+        }
+
         /// <summary>
         /// UnloadContent will be called once per game and is the place to unload
         /// game-specific content.
@@ -243,7 +261,10 @@ namespace PASS2V2
 
         private void UpdateMenu()
         {
-
+            for (int i = 0; i < MENU_BUTTON_NUM; i++)
+            {
+                menuButtons[i].Update(mouse);
+            }
         }
 
         /// <summary>
@@ -268,21 +289,23 @@ namespace PASS2V2
                 // check if last level
                 if (curLevel == NUM_LEVELS - 1)
                 {
-                    // TODO:check if player has beaten high score
-
+                   // check if player has beaten high score
+                    if (player.Score > player.HighScore)
+                    {
+                        player.HighScore = player.Score;
+                    }
 
                     // end game
                     gameState = MENU;
 
+
                     // TODO:save stats
+                    SaveStats();
                 }
                 else
                 {
                     curLevel++;
                     gameState = SHOP;
-
-                    // DEBUG: REMOVE
-                    player.Score = 1000;
                 }
             }
         }
@@ -311,7 +334,14 @@ namespace PASS2V2
 
         private void PlayButtonHover()
         {
+            menuButtons[PLAY_BUTTON_INDEX].SetShadowText(MENU_BUTTON_TEXT_OFFSET_X, MENU_BUTTON_TEXT_OFFSET_Y, Color.Black);
+            menuButtons[PLAY_BUTTON_INDEX].SetText(Assets.minecraftBold, "PLAY", Color.Yellow);
+        }
 
+        private void PlayButtonExit()
+        {
+            menuButtons[PLAY_BUTTON_INDEX].SetShadowText(0, 0, Color.White);
+            menuButtons[PLAY_BUTTON_INDEX].SetText(Assets.minecraftBold, "PLAY", Color.Black);
         }
 
         private void PlayButtonClick()
@@ -319,12 +349,46 @@ namespace PASS2V2
             gameState = GAMEPLAY;
             curLevel = 0; // note the current level is at the zero index in the level array, but the player starts at level 1
 
+            // reset player
             player.ResetBuffs();
             player.Score = 0;
 
-            // re load level
-            InitializeLevels();
+            // reset level
+            ResetLevels();
         }
+
+
+        private void StatsButtonClick()
+        {
+            gameState = STATS;
+        }
+        private void StatsButtonHover()
+        {
+            menuButtons[STATS_BUTTON_INDEX].SetShadowText(MENU_BUTTON_TEXT_OFFSET_X, MENU_BUTTON_TEXT_OFFSET_Y, Color.Black);
+            menuButtons[STATS_BUTTON_INDEX].SetText(Assets.minecraftBold, "STATS", Color.Yellow);
+        }
+        private void StatsButtonExit()
+        {
+            menuButtons[STATS_BUTTON_INDEX].SetShadowText(0, 0, Color.White);
+            menuButtons[STATS_BUTTON_INDEX].SetText(Assets.minecraftBold, "STATS", Color.Black);
+        }
+
+
+        private void ExitButtonClick()
+        {
+            Exit();
+        }
+        private void ExitButtonHover()
+        {
+            menuButtons[EXIT_BUTTON_INDEX].SetShadowText(MENU_BUTTON_TEXT_OFFSET_X, MENU_BUTTON_TEXT_OFFSET_Y, Color.Black);
+            menuButtons[EXIT_BUTTON_INDEX].SetText(Assets.minecraftBold, "EXIT", Color.Yellow);
+        }
+        private void ExitButtonExit()
+        {
+            menuButtons[EXIT_BUTTON_INDEX].SetShadowText(0, 0, Color.White);
+            menuButtons[EXIT_BUTTON_INDEX].SetText(Assets.minecraftBold, "EXIT", Color.Black);
+        }
+
 
         private void InitializeLevels()
         {
@@ -334,8 +398,21 @@ namespace PASS2V2
                 level[i] = new Level(spriteBatch, i + 1);
                 level[i].Load();
             }
-
         }
+
+        private void ResetLevels()
+        {
+            for (int i = 0; i < NUM_LEVELS; i++)
+            {
+                level[i].LevelReset();
+            }
+        }
+
+        private void SaveStats()
+        {
+            // TODO
+        }
+
 
         /// <summary>
         /// This is called when the game should draw itself.
@@ -351,6 +428,7 @@ namespace PASS2V2
             switch (gameState)
             {
                 case MENU:
+                    DrawMenu();
                     break;
                 case STATS:
                     break;
@@ -370,6 +448,15 @@ namespace PASS2V2
             spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+
+        private void DrawMenu()
+        {
+            // draw all the buttons
+            for (int i = 0; i < MENU_BUTTON_NUM; i++)
+            {
+                menuButtons[i].Draw(spriteBatch);
+            }
         }
 
         private void DrawLevelStats()
@@ -396,9 +483,6 @@ namespace PASS2V2
                 spriteBatch.DrawString(Assets.minecraftRegular, HIT_PERCENT_TEXT + 0, RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
             else spriteBatch.DrawString(Assets.minecraftRegular, HIT_PERCENT_TEXT + 100 * level[curLevel].LevelShotsHit / level[curLevel].LevelShotsFired, RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
             spriteBatch.DrawString(Assets.minecraftBold, CONTINUE_TEXT, CenterTextX(Assets.minecraftBold, CONTINUE_TEXT, (int)(levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y))), Color.Yellow);
-            
-
-
         }
 
         private void DrawGameplay()

@@ -18,11 +18,11 @@ namespace PASS2V2
             Post_Sprial = 2
         }
 
-        private const int STARTING_RADIUS = Game1.SCREEN_HEIGHT / 2 - (2 * Mob.HEIGHT);
-        private const int STARTING_X = Game1.SCREEN_WIDTH / 2 + (STARTING_RADIUS - Mob.WIDTH / 2);
+        private const int STARTING_RADIUS = Game1.SCREEN_HEIGHT / 2 - (2 * HEIGHT);
+        private const int STARTING_X = Game1.SCREEN_WIDTH / 2 + (STARTING_RADIUS - WIDTH / 2);
 
         private const double ROTATIONS = 8 * Math.PI;
-        private const float SPRIAL_RATE = 0.05f;
+        private const float SPRIAL_RATE = 0.05f; // radians per update
         private const double RADIUS_RATE = (STARTING_RADIUS * SPRIAL_RATE) / (ROTATIONS);
 
         private const int SHOOTING_DUR = 750; // ms
@@ -37,8 +37,12 @@ namespace PASS2V2
 
         public Skeleton (SpriteBatch spriteBatch) : base (spriteBatch, new Vector2(STARTING_X, 0 - Mob.HEIGHT), new Vector2(3.5f, 3.5f), 25, 4, 20)
         {
+            // set the mob skin
             skin = Assets.skeletonImg;
-            isShoot = true;
+            
+            // reset the timer, and isShoot flag
+            isShoot = false;
+            shootingTimer.ResetTimer(true);
         }
 
         public override void Update(GameTime gameTime, Rectangle playerRec)
@@ -65,7 +69,7 @@ namespace PASS2V2
         {
             shootingTimer.Update(gameTime);
 
-            if (shootingTimer.IsFinished())
+            if (!shootingTimer.IsActive())
             {
                 isShoot = true;
                 shootingTimer.ResetTimer(true);
@@ -82,7 +86,7 @@ namespace PASS2V2
                     rec.Y = (int)curLoc.Y;
 
                     // check if skeleton reach half way
-                    if (curLoc.Y - HEIGHT / 2 >= Game1.SCREEN_HEIGHT / 2)
+                    if (curLoc.Y + HEIGHT / 2 >= Game1.SCREEN_HEIGHT / 2)
                     {
                         sprialState = SprialStates.Sprial;
                     }
