@@ -65,6 +65,11 @@ namespace PASS2V2
         public static Texture2D pointMutiIconImg;
         public static Texture2D speedIconImg;
 
+        // game titles
+        public static Texture2D gameTitleImg;
+        public static Texture2D shopTitleImg;
+        public static Texture2D statsTitleImg;
+
         /// <summary>
         /// method loads all assets to the game
         /// </summary>
@@ -130,6 +135,11 @@ namespace PASS2V2
             damageIconImg = Load<Texture2D>("IconDamage_32");
             fireRateIconImg = Load<Texture2D>("IconFireRate_32");
             pointMutiIconImg = Load<Texture2D>("IconPoints_32");
+
+            // load game titles
+            gameTitleImg = Load<Texture2D>("Title");
+            shopTitleImg = Load<Texture2D>("ShopTitle");
+            statsTitleImg = Load<Texture2D>("StatsTitle");
         }
 
         /// <summary>

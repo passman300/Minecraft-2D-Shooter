@@ -1,13 +1,12 @@
-﻿using GameUtility;
+﻿
+
+using GameUtility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-
 
 namespace PASS2V2
 {
@@ -45,6 +44,9 @@ namespace PASS2V2
 
         // number of levels
         private const int NUM_LEVELS = 5;
+
+        // title location
+        private const int TITLE_LOC = 5;
 
         // instruction text y location and title spacing
         private const int STATS_TEXT_Y = 210;
@@ -308,11 +310,13 @@ namespace PASS2V2
                 gameState = LEVEL_STATS;
 
                 // calculate level hit percent
-                level[curLevel].LevelHitPercent = (level[curLevel].LevelShotsFired == 0) ? 0 : (float)(level[curLevel].LevelShotsHit / level[curLevel].LevelShotsFired) * 100;
+                level[curLevel].LevelHitPercent = (level[curLevel].LevelShotsFired == 0) ? 0 : (float)(level[curLevel].LevelShotsHit) / level[curLevel].LevelShotsFired * 100;
             }
         }
 
-
+        /// <summary>
+        /// update the level stats
+        /// </summary>
         private void UpdateLevelStats()
         {
             // check if space is pressed, player wants to play next level or return to menu
@@ -334,14 +338,19 @@ namespace PASS2V2
                     // end game, return to menu
                     gameState = MENU;
 
-                    float totalHitPercent = 0;
-
                     // calculate total hit percent
-                    for (int i = 0; i < NUM_LEVELS; i++)
-                    {
-                        totalHitPercent += level[i].LevelHitPercent;
-                    }
+                    int totalHit = 0;
+                    int totalShot = 0;
 
+                    // iterate through all levels to get total hit percent
+                    foreach (Level l in level)
+                    {
+                        totalHit += l.LevelShotsHit;
+                        totalShot += l.LevelShotsFired;
+                    }
+                    
+                    float totalHitPercent = (totalShot == 0) ? 0 : (float)(totalHit) / totalShot * 100;
+                   
                     // check if player has new top hit percent
                     if (player.TopHitPercent < totalHitPercent)
                     {
@@ -421,6 +430,8 @@ namespace PASS2V2
         private void StatsButtonClick()
         {
             gameState = STATS;
+
+            player.CalculateExtraStats(); // calculate extra stats (total kills, all time hit percentage, average shots per game, average hit percentage)
         }
 
         /// <summary>
@@ -486,7 +497,7 @@ namespace PASS2V2
                 // read the 
                 int[] killLine = inFile.ReadLine().Split(',').Select(x => int.Parse(x)).ToArray();
                 player.MobsKilled[Player.VILLAGER_KILL_INDEX] = killLine[0];
-                player.MobsKilled[Player.SKELETON_KILL_INDEX] = killLine[1];
+                player.MobsKilled[Player.CREEPER_KILL_INDEX] = killLine[1];
                 player.MobsKilled[Player.SKELETON_KILL_INDEX] = killLine[2];
                 player.MobsKilled[Player.PILLAGER_KILL_INDEX] = killLine[3];
                 player.MobsKilled[Player.ENDERMAN_KILL_INDEX] = killLine[4];
@@ -632,6 +643,9 @@ namespace PASS2V2
             // draw back ground
             spriteBatch.Draw(Assets.menuImg3, Vector2.Zero, Color.White);
 
+            // draw game title
+            spriteBatch.Draw(Assets.gameTitleImg, CenterRectangleX(Assets.gameTitleImg.Width, TITLE_LOC));
+
             // draw all the buttons
             for (int i = 0; i < MENU_BUTTON_NUM; i++)
             {
@@ -647,6 +661,9 @@ namespace PASS2V2
             // draw stats box
             spriteBatch.Draw(Assets.blankPixel, new Rectangle(0, STATS_TEXT_Y, STATS_BOX_WIDTH, STATS_BOX_HEIGHT), Color.Black * STATS_BOX_OPACITY);
 
+            // draw stats title
+            spriteBatch.Draw(Assets.statsTitleImg, CenterRectangleX(Assets.statsTitleImg.Width, TITLE_LOC), Color.White);
+
             // draw all the stats
             spriteBatch.DrawString(Assets.minecraftEvening, "High Score: " + player.HighScore, CenterTextX(Assets.minecraftEvening, "High Score: " + player.HighScore, STATS_TEXT_Y), Color.Yellow);
 
@@ -655,7 +672,7 @@ namespace PASS2V2
             spriteBatch.DrawString(Assets.minecraftRegular, "Shots Fired: " + player.ShotsFired, RightTextX((int)levelStatsLoc.Y + 1 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
             spriteBatch.DrawString(Assets.minecraftRegular, "Shots Hit: " + player.ShotsHit, RightTextX((int)levelStatsLoc.Y + 2 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
             spriteBatch.DrawString(Assets.minecraftRegular, "Top Hit %: " + string.Format("{0:0.00}", player.TopHitPercent) ,RightTextX((int)levelStatsLoc.Y + 3 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
-            spriteBatch.DrawString(Assets.minecraftRegular, "All-Time Hit %: " + player.AllTimeHitPercent, RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "All-Time Hit %: " + string.Format("{0:0.00}", player.AllTimeHitPercent), RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
             spriteBatch.DrawString(Assets.minecraftRegular, "Avg. Shots: " + player.AvgShotsPerGame, RightTextX((int)levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
 
             // draw player mobs kills
@@ -693,7 +710,7 @@ namespace PASS2V2
             spriteBatch.DrawString(Assets.minecraftRegular, "Shots Fired: " + level[curLevel].LevelShotsFired, RightTextX((int)levelStatsLoc.Y + 2 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
             spriteBatch.DrawString(Assets.minecraftRegular, "Shots Hit: " + level[curLevel].LevelShotsHit, RightTextX((int)levelStatsLoc.Y + 3 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
             
-            spriteBatch.DrawString(Assets.minecraftRegular, "Hit %: " + string.Format("{0:0.##}", level[curLevel].LevelHitPercent), RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Hit %: " + string.Format("{0:0.00}", level[curLevel].LevelHitPercent), RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
             
             spriteBatch.DrawString(Assets.minecraftBold, "PRESS SPACE TO CONTINUE", CenterTextX(Assets.minecraftBold, "PRESS SPACE TO CONTINUE", (int)(levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y))), Color.Yellow);
         }

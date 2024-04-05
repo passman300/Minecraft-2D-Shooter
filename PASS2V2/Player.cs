@@ -325,7 +325,7 @@ namespace PASS2V2
             foreach(int kills in mobsKilled) totalKills += kills;
 
             // all time hit percentage
-            allTimeHitPercent = (float)shotsHit / shotsFired;
+            allTimeHitPercent = (shotsFired == 0) ? 0 : (float)shotsHit / shotsFired * 100;
 
             // average shots per game
             avgShotsPerGame = (gamesPlayed == 0) ? 0 : (float)shotsFired / gamesPlayed;

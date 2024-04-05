@@ -18,7 +18,7 @@ namespace PASS2V2
         // spawn, teleport, and visited locations
         private static Vector2 spawnLoc = new Vector2(Game1.rng.Next(0, Game1.SCREEN_WIDTH - WIDTH), 0);
         private static Vector2[] tpLoc = new Vector2[TP_LOC_COUNT];
-        private bool[] isVisted = new bool[TP_LOC_COUNT];
+        private bool[] isVisited = new bool[TP_LOC_COUNT];
 
         // timer for if the enderman should be teleport
         private Timer tpTimer = new Timer(TP_DUR, true);
@@ -117,7 +117,7 @@ namespace PASS2V2
                         int randSpawnIndex = Game1.rng.Next(0, TP_LOC_COUNT);
 
                         // check if the random index has already been visited, if so generate a new one
-                        while (isVisted[randSpawnIndex])
+                        while (isVisited[randSpawnIndex])
                         {
                             randSpawnIndex = Game1.rng.Next(0, TP_LOC_COUNT);
                         }
@@ -129,7 +129,7 @@ namespace PASS2V2
 
                         // increment the teleport count and mark the location as visited
                         tpCount++;
-                        isVisted[randSpawnIndex] = true;
+                        isVisited[randSpawnIndex] = true;
                     }
                     else if (tpCount == TP_LOC_COUNT)
                     {

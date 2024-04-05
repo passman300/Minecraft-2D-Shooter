@@ -693,7 +693,5 @@ namespace PASS2V2
         
             spriteBatch.DrawString(Assets.debugFont, "Player Damage" + player.Damage, new Vector2(3, 30), Color.White);
         }
-
-
     }
 }
