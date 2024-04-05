@@ -3,8 +3,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
-using System.CodeDom;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+
 
 namespace PASS2V2
 {
@@ -31,7 +34,7 @@ namespace PASS2V2
         private const int EXIT_BUTTON_INDEX = 2;
 
         // menu button spacing, base location, and dimensions
-        private const int MENU_BUTTON_Y = 100;
+        private const int MENU_BUTTON_Y = 220;
         private const int MENU_BUTTON_SPACER_Y = 4;
         private const int MENU_BUTTON_WIDTH = 400;
         private const int MENU_BUTTON_HEIGHT = 127;
@@ -43,15 +46,6 @@ namespace PASS2V2
         // number of levels
         private const int NUM_LEVELS = 5;
 
-        // level title text
-        private const string SCORE_TEXT = "Score: ";
-        private const string LEVEL_TEXT = "Level ";
-        private const string KILLS_TEXT = "Kills: ";
-        private const string SHOTS_FIRED_TEXT = "Shots Fired: ";
-        private const string SHOTS_HIT_TEXT = "Shots Hit: ";
-        private const string HIT_PERCENT_TEXT = "Hit %: ";
-        private const string CONTINUE_TEXT = "PRESS SPACE TO CONTINUE";
-
         // instruction text y location and title spacing
         private const int STATS_TEXT_Y = 210;
         private const int LEVEL_TEXT_Y = 270;
@@ -60,7 +54,7 @@ namespace PASS2V2
 
         // title box width and height and opacity
         private const int STATS_BOX_WIDTH = SCREEN_WIDTH;
-        private const int STATS_BOX_HEIGHT = 275;
+        private const int STATS_BOX_HEIGHT = 300;
         private const float STATS_BOX_OPACITY = 0.5f;
 
         // index of the shop upgrades buttons (rectangles)
@@ -81,6 +75,10 @@ namespace PASS2V2
         private const int SHOP_FIRE_COST = 300;
         private const int SHOP_POINTS_COST = 500;
 
+        // stats menu file path
+        private const string STATS_FILE_PATH = "stats.txt";
+        private const string STATS_TEMPLATE = "0\n0\n0,0,0\n0,0,0,0,0";
+
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
 
@@ -92,18 +90,25 @@ namespace PASS2V2
         public static MouseState mouse;
         public static MouseState prevMouse;
 
+        private StreamReader inFile;
+        private StreamWriter outFile;
+
         // game stats
         private int gameState = MENU;
 
         // list of buttons in the menu
         private Rectangle[] menuButtonRecs = new Rectangle[MENU_BUTTON_NUM];
         private Button[] menuButtons = new Button[MENU_BUTTON_NUM];
+        private string[] menuButtonText = { "PLAY", "STATS", "EXIT" };
 
         // player
         private Player player;
 
         // level stats
         private Vector2 levelStatsLoc = new Vector2(TITLE_SPACING_X, LEVEL_TEXT_Y);
+
+        // is high score
+        private bool isHighScore = false;
 
         // level stats
         private Level[] level = new Level[NUM_LEVELS];
@@ -140,6 +145,7 @@ namespace PASS2V2
             // set mouse to visible
             IsMouseVisible = true;
 
+
             base.Initialize();
         }
 
@@ -156,6 +162,7 @@ namespace PASS2V2
             Assets.Content = Content;
             Assets.Initialize();
 
+            // load and initialize menu buttons
             LoadButtons();
 
             // load and initialize all levels
@@ -163,6 +170,9 @@ namespace PASS2V2
 
             // load player
             player = new Player(spriteBatch);
+
+            // load stats
+            ReadStats();
 
             // load shop buttons
             shopButtonRecs[Player.DOUBLE_SPEED_INDEX] = new Rectangle((int)CenterRectangleX(SHOP_BUTTON_WIDTH, SCREEN_HEIGHT / 2 - SHOP_BUTTON_SPACING_Y / 2 - SHOP_BUTTON_HEIGHT, 0.25f).X, SCREEN_HEIGHT / 2 - SHOP_BUTTON_SPACING_Y / 2 - SHOP_BUTTON_HEIGHT, SHOP_BUTTON_WIDTH, SHOP_BUTTON_HEIGHT);
@@ -183,6 +193,9 @@ namespace PASS2V2
             shopCost[Player.DOUBLE_POINTS_INDEX] = SHOP_POINTS_COST;
         }
 
+        /// <summary>
+        /// load menu buttons
+        /// </summary>
         private void LoadButtons()
         {
             // load menu buttons rectangles and buttons
@@ -200,7 +213,7 @@ namespace PASS2V2
             StatsButtonExit();
             ExitButtonExit();
 
-            // intilize the button hovers and clicks
+            // initialize the button hovers and clicks
             menuButtons[PLAY_BUTTON_INDEX].Clicked += PlayButtonClick;
             menuButtons[PLAY_BUTTON_INDEX].HoverEnter += () => PlayButtonHover();
             menuButtons[PLAY_BUTTON_INDEX].HoverExit += () => PlayButtonExit();
@@ -231,19 +244,22 @@ namespace PASS2V2
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            // TODO: Add your update logic here
+            // update the keyboard
             prevKb = kb;
             kb = Keyboard.GetState();
 
+            // update the mouse
             prevMouse = mouse;
             mouse = Mouse.GetState();
 
+            // update based on the current game state
             switch (gameState)
             {
                 case MENU:
                     UpdateMenu();
                     break;
                 case STATS:
+                    UpdateStats();
                     break;
                 case GAMEPLAY:
                     UpdateGameplay(gameTime);
@@ -259,6 +275,9 @@ namespace PASS2V2
             base.Update(gameTime);
         }
 
+        /// <summary>
+        /// update the main menu, update the buttons
+        /// </summary>
         private void UpdateMenu()
         {
             for (int i = 0; i < MENU_BUTTON_NUM; i++)
@@ -267,42 +286,72 @@ namespace PASS2V2
             }
         }
 
+        private void UpdateStats()
+        {
+            // check if space is pressed, player wants to return to menu
+            if (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space))
+                gameState = MENU;
+        }
+
         /// <summary>
         /// update the gameplay of the whole game
         /// </summary>
         /// <param name="gameTime"></param> time passed within game
         private void UpdateGameplay(GameTime gameTime)
         {
+            // update the level
             level[curLevel].Update(gameTime, player);
 
+            // check if level is over
             if (level[curLevel].LevelState == Level.LevelStates.PostLevel)
             {
                 gameState = LEVEL_STATS;
+
+                // calculate level hit percent
+                level[curLevel].LevelHitPercent = (level[curLevel].LevelShotsFired == 0) ? 0 : (float)(level[curLevel].LevelShotsHit / level[curLevel].LevelShotsFired) * 100;
             }
         }
 
 
         private void UpdateLevelStats()
         {
+            // check if space is pressed, player wants to play next level or return to menu
             if (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space))
             {
                 // check if last level
                 if (curLevel == NUM_LEVELS - 1)
                 {
-                   // check if player has beaten high score
-                    if (player.Score > player.HighScore)
+                    // check if player has beaten high score
+                    if (player.Score > player.HighScore && curLevel == NUM_LEVELS - 1)
                     {
                         player.HighScore = player.Score;
+                        isHighScore = true; // show high score
                     }
 
-                    // end game
+                    // increment games played
+                    player.GamesPlayed++;
+
+                    // end game, return to menu
                     gameState = MENU;
 
+                    float totalHitPercent = 0;
 
-                    // TODO:save stats
+                    // calculate total hit percent
+                    for (int i = 0; i < NUM_LEVELS; i++)
+                    {
+                        totalHitPercent += level[i].LevelHitPercent;
+                    }
+
+                    // check if player has new top hit percent
+                    if (player.TopHitPercent < totalHitPercent)
+                    {
+                        player.TopHitPercent = totalHitPercent;
+                    }
+
+                    // save stats
                     SaveStats();
                 }
-                else
+                else // go to next level
                 {
                     curLevel++;
                     gameState = SHOP;
@@ -326,26 +375,33 @@ namespace PASS2V2
             }
 
             // check if the player is done with the shop
-            if (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space))
-            {
-                gameState = GAMEPLAY;
-            }
+            if (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space)) gameState = GAMEPLAY;
         }
 
+        /// <summary>
+        /// function when play button is hovered
+        /// </summary>
         private void PlayButtonHover()
         {
             menuButtons[PLAY_BUTTON_INDEX].SetShadowText(MENU_BUTTON_TEXT_OFFSET_X, MENU_BUTTON_TEXT_OFFSET_Y, Color.Black);
-            menuButtons[PLAY_BUTTON_INDEX].SetText(Assets.minecraftBold, "PLAY", Color.Yellow);
+            menuButtons[PLAY_BUTTON_INDEX].SetText(Assets.minecraftBold, menuButtonText[PLAY_BUTTON_INDEX], Color.Yellow);
         }
 
+        /// <summary>
+        /// function when play button is exited
+        /// </summary>
         private void PlayButtonExit()
         {
             menuButtons[PLAY_BUTTON_INDEX].SetShadowText(0, 0, Color.White);
-            menuButtons[PLAY_BUTTON_INDEX].SetText(Assets.minecraftBold, "PLAY", Color.Black);
+            menuButtons[PLAY_BUTTON_INDEX].SetText(Assets.minecraftBold, menuButtonText[PLAY_BUTTON_INDEX], Color.Black);
         }
 
+        /// <summary>
+        /// function when play button is clicked
+        /// </summary>
         private void PlayButtonClick()
         {
+            // set the game state to gameplay
             gameState = GAMEPLAY;
             curLevel = 0; // note the current level is at the zero index in the level array, but the player starts at level 1
 
@@ -353,53 +409,172 @@ namespace PASS2V2
             player.ResetBuffs();
             player.Score = 0;
 
+            isHighScore = false;
+
             // reset level
             ResetLevels();
         }
 
-
+        /// <summary>
+        /// function when stats button is clicked
+        /// </summary>
         private void StatsButtonClick()
         {
             gameState = STATS;
         }
+
+        /// <summary>
+        /// function when stats button is hovered
+        /// </summary>
         private void StatsButtonHover()
         {
             menuButtons[STATS_BUTTON_INDEX].SetShadowText(MENU_BUTTON_TEXT_OFFSET_X, MENU_BUTTON_TEXT_OFFSET_Y, Color.Black);
-            menuButtons[STATS_BUTTON_INDEX].SetText(Assets.minecraftBold, "STATS", Color.Yellow);
+            menuButtons[STATS_BUTTON_INDEX].SetText(Assets.minecraftBold, menuButtonText[STATS_BUTTON_INDEX], Color.Yellow);
         }
+
+        /// <summary>
+        /// function when stats button is exited
+        /// </summary>
         private void StatsButtonExit()
         {
             menuButtons[STATS_BUTTON_INDEX].SetShadowText(0, 0, Color.White);
-            menuButtons[STATS_BUTTON_INDEX].SetText(Assets.minecraftBold, "STATS", Color.Black);
+            menuButtons[STATS_BUTTON_INDEX].SetText(Assets.minecraftBold, menuButtonText[STATS_BUTTON_INDEX], Color.Black);
         }
 
-
+        /// <summary>
+        /// function when exit button is clicked
+        /// </summary>
         private void ExitButtonClick()
         {
-            Exit();
+            Exit(); // exit the game
         }
+
+        /// <summary>
+        /// function when exit button is hovered
+        /// </summary>
         private void ExitButtonHover()
         {
             menuButtons[EXIT_BUTTON_INDEX].SetShadowText(MENU_BUTTON_TEXT_OFFSET_X, MENU_BUTTON_TEXT_OFFSET_Y, Color.Black);
-            menuButtons[EXIT_BUTTON_INDEX].SetText(Assets.minecraftBold, "EXIT", Color.Yellow);
+            menuButtons[EXIT_BUTTON_INDEX].SetText(Assets.minecraftBold, menuButtonText[EXIT_BUTTON_INDEX], Color.Yellow);
         }
+
+        /// <summary>
+        /// function when exit button is exited
+        /// </summary>
         private void ExitButtonExit()
         {
             menuButtons[EXIT_BUTTON_INDEX].SetShadowText(0, 0, Color.White);
-            menuButtons[EXIT_BUTTON_INDEX].SetText(Assets.minecraftBold, "EXIT", Color.Black);
+            menuButtons[EXIT_BUTTON_INDEX].SetText(Assets.minecraftBold, menuButtonText[EXIT_BUTTON_INDEX], Color.Black);
         }
 
+        private void ReadStats()
+        {
+            try
+            {
+                // open the level tile file
+                inFile = File.OpenText(STATS_FILE_PATH);
 
+
+                player.HighScore = int.Parse(inFile.ReadLine());
+                player.GamesPlayed = int.Parse(inFile.ReadLine());
+
+                float[] shotsLine = inFile.ReadLine().Split(',').Select(x => float.Parse(x)).ToArray(); // cool array parsing
+                player.ShotsFired = (int)shotsLine[0];
+                player.ShotsHit = (int)shotsLine[1];
+                player.TopHitPercent = shotsLine[2];
+
+                // read the 
+                int[] killLine = inFile.ReadLine().Split(',').Select(x => int.Parse(x)).ToArray();
+                player.MobsKilled[Player.VILLAGER_KILL_INDEX] = killLine[0];
+                player.MobsKilled[Player.SKELETON_KILL_INDEX] = killLine[1];
+                player.MobsKilled[Player.SKELETON_KILL_INDEX] = killLine[2];
+                player.MobsKilled[Player.PILLAGER_KILL_INDEX] = killLine[3];
+                player.MobsKilled[Player.ENDERMAN_KILL_INDEX] = killLine[4];
+
+                player.CalculateExtraStats(); // calculate extra stats (total kills, all time hit percentage, average shots per game, average hit percentage)
+
+                inFile.Close();
+            }
+            catch (IndexOutOfRangeException) // cases where line is read as too many values
+            {
+                inFile.Close();
+
+                outFile = File.CreateText(STATS_FILE_PATH);
+
+                // set everything to 0 if there is an error with blank template
+                outFile.Write(STATS_TEMPLATE);
+
+                outFile.Close();
+
+                ReadStats();
+            }
+            catch (FileNotFoundException) // cases where file is not found
+            {
+                inFile.Close();
+
+                outFile = File.CreateText(STATS_FILE_PATH);
+
+                // set everything to 0 if there is an error with blank template
+                outFile.Write(STATS_TEMPLATE);
+
+                outFile.Close();
+
+                ReadStats();
+            }
+            catch (NullReferenceException) // cases where line is read as null
+            {
+                inFile.Close();
+
+                outFile = File.CreateText(STATS_FILE_PATH);
+
+                // set everything to 0 if there is an error with blank template
+                outFile.Write(STATS_TEMPLATE);
+
+                outFile.Close();
+
+                ReadStats();
+            }
+        }
+
+        /// <summary>
+        /// Save all player stats to file
+        /// 
+        /// FILE FORMAT
+        /// 
+        /// high score 
+        /// games played
+        /// shots fired, shots hit, top hit percent
+        /// villager kills, creeper kills, skeleton kills, pillager kills, enderman kills
+        /// </summary>
+        private void SaveStats()
+        {
+            outFile = File.CreateText(STATS_FILE_PATH);
+
+            outFile.WriteLine(player.HighScore);
+            outFile.WriteLine(player.GamesPlayed);
+
+            outFile.WriteLine(player.ShotsFired + "," + player.ShotsHit + "," + player.TopHitPercent);
+            outFile.WriteLine(player.MobsKilled[Player.SKELETON_KILL_INDEX] + "," + player.MobsKilled[Player.CREEPER_KILL_INDEX] + "," + player.MobsKilled[Player.SKELETON_KILL_INDEX] + "," + player.MobsKilled[Player.PILLAGER_KILL_INDEX] + "," + player.MobsKilled[Player.ENDERMAN_KILL_INDEX]);
+        
+            outFile.Close();
+        }
+
+        /// <summary>
+        /// Initialize all levels
+        /// </summary>
         private void InitializeLevels()
         {
             // load and initialize all levels
             for (int i = 0; i < NUM_LEVELS; i++)
             {
-                level[i] = new Level(spriteBatch, i + 1);
-                level[i].Load();
+                level[i] = new Level(spriteBatch, i + 1); // level index starts at 1
+                level[i].Load(); // load the level
             }
         }
 
+        /// <summary>
+        /// Reset all levels to their original state
+        /// </summary>
         private void ResetLevels()
         {
             for (int i = 0; i < NUM_LEVELS; i++)
@@ -408,10 +583,7 @@ namespace PASS2V2
             }
         }
 
-        private void SaveStats()
-        {
-            // TODO
-        }
+
 
 
         /// <summary>
@@ -424,13 +596,14 @@ namespace PASS2V2
 
             spriteBatch.Begin();
 
-            // TODO: Add your drawing code here
+            // draw based on the game state
             switch (gameState)
             {
                 case MENU:
                     DrawMenu();
                     break;
                 case STATS:
+                    DrawStats();
                     break;
                 case GAMEPLAY:
                     DrawGameplay();
@@ -443,15 +616,22 @@ namespace PASS2V2
                     break;
             }
 
-            DrawMouseLoc();
+            // DEBUG
+            //DrawMouseLoc();
 
             spriteBatch.End();
 
             base.Draw(gameTime);
         }
 
+        /// <summary>
+        /// draw the main menu
+        /// </summary>
         private void DrawMenu()
         {
+            // draw back ground
+            spriteBatch.Draw(Assets.menuImg3, Vector2.Zero, Color.White);
+
             // draw all the buttons
             for (int i = 0; i < MENU_BUTTON_NUM; i++)
             {
@@ -459,6 +639,38 @@ namespace PASS2V2
             }
         }
 
+        public void DrawStats()
+        {
+            // draw back ground
+            spriteBatch.Draw(Assets.menuImg3, Vector2.Zero, Color.White);
+
+            // draw stats box
+            spriteBatch.Draw(Assets.blankPixel, new Rectangle(0, STATS_TEXT_Y, STATS_BOX_WIDTH, STATS_BOX_HEIGHT), Color.Black * STATS_BOX_OPACITY);
+
+            // draw all the stats
+            spriteBatch.DrawString(Assets.minecraftEvening, "High Score: " + player.HighScore, CenterTextX(Assets.minecraftEvening, "High Score: " + player.HighScore, STATS_TEXT_Y), Color.Yellow);
+
+            // draw player general stats
+            spriteBatch.DrawString(Assets.minecraftRegular, "Games Played: " + player.GamesPlayed, RightTextX((int)levelStatsLoc.Y, 0), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Shots Fired: " + player.ShotsFired, RightTextX((int)levelStatsLoc.Y + 1 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Shots Hit: " + player.ShotsHit, RightTextX((int)levelStatsLoc.Y + 2 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Top Hit %: " + string.Format("{0:0.00}", player.TopHitPercent) ,RightTextX((int)levelStatsLoc.Y + 3 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "All-Time Hit %: " + player.AllTimeHitPercent, RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Avg. Shots: " + player.AvgShotsPerGame, RightTextX((int)levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0), Color.White);
+
+            // draw player mobs kills
+            spriteBatch.DrawString(Assets.minecraftRegular, "Villager Kills: " + player.MobsKilled[Player.VILLAGER_KILL_INDEX], RightTextX((int)levelStatsLoc.Y, 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Creeper Kills: " + player.MobsKilled[Player.CREEPER_KILL_INDEX], RightTextX((int)levelStatsLoc.Y + 1 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Skeleton Kills: " + player.MobsKilled[Player.SKELETON_KILL_INDEX], RightTextX((int)levelStatsLoc.Y + 2 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Pillager Kills: " + player.MobsKilled[Player.PILLAGER_KILL_INDEX], RightTextX((int)levelStatsLoc.Y + 3 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Enderman Kills: " + player.MobsKilled[Player.ENDERMAN_KILL_INDEX], RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Avg. Kills: " + player.AvgKillsPerGame, RightTextX((int)levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftEvening, "TOTAL KILLS: " + player.TotalKills, CenterTextX(Assets.minecraftEvening, "TOTAL KILLS: " + player.TotalKills, (int)(levelStatsLoc.Y + 6 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y))), Color.Red);
+        }
+
+        /// <summary>
+        /// draw the level stats
+        /// </summary>
         private void DrawLevelStats()
         {
             // draw the level
@@ -468,28 +680,33 @@ namespace PASS2V2
             spriteBatch.Draw(Assets.blankPixel, new Rectangle(0, STATS_TEXT_Y, STATS_BOX_WIDTH, STATS_BOX_HEIGHT), Color.Black * STATS_BOX_OPACITY);
 
             // draw all the stats
-            spriteBatch.DrawString(Assets.minecraftEvening, SCORE_TEXT + player.Score, CenterTextX(Assets.minecraftEvening, SCORE_TEXT + " " + player.Score, STATS_TEXT_Y), Color.Yellow);
+            spriteBatch.DrawString(Assets.minecraftEvening, "Score: " + player.Score, CenterTextX(Assets.minecraftEvening, "Score: " + player.Score, STATS_TEXT_Y), Color.Yellow);
 
             for (int i = 0; i < NUM_LEVELS; i++)
             {
-                spriteBatch.DrawString(Assets.minecraftRegular, LEVEL_TEXT + (i + 1) + " score: " + level[i].LevelScore, RightTextX((int)levelStatsLoc.Y + (i) * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0f), Color.White);
+                spriteBatch.DrawString(Assets.minecraftRegular, "Level " + (i + 1) + " score: " + level[i].LevelScore, RightTextX((int)levelStatsLoc.Y + (i) * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0f), Color.White);
             }
 
-            spriteBatch.DrawString(Assets.minecraftRegular, LEVEL_TEXT + (curLevel + 1), RightTextX((int)levelStatsLoc.Y, 0.5f), Color.White);
-            spriteBatch.DrawString(Assets.minecraftRegular, KILLS_TEXT + level[curLevel].LevelKills, RightTextX((int)levelStatsLoc.Y + 1 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
-            spriteBatch.DrawString(Assets.minecraftRegular, SHOTS_FIRED_TEXT + level[curLevel].LevelShotsFired, RightTextX((int)levelStatsLoc.Y + 2 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
-            spriteBatch.DrawString(Assets.minecraftRegular, SHOTS_HIT_TEXT + level[curLevel].LevelShotsHit, RightTextX((int)levelStatsLoc.Y + 3 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
-            if (level[curLevel].LevelShotsFired == 0)
-                spriteBatch.DrawString(Assets.minecraftRegular, HIT_PERCENT_TEXT + 0, RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
-            else spriteBatch.DrawString(Assets.minecraftRegular, HIT_PERCENT_TEXT + 100 * level[curLevel].LevelShotsHit / level[curLevel].LevelShotsFired, RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y), 0.5f), Color.White);
-            spriteBatch.DrawString(Assets.minecraftBold, CONTINUE_TEXT, CenterTextX(Assets.minecraftBold, CONTINUE_TEXT, (int)(levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(SCORE_TEXT).Y))), Color.Yellow);
+            // draw current level stats, level number, kills, shots fired, shots hit, and accuracy
+            spriteBatch.DrawString(Assets.minecraftRegular, "Level: " + (curLevel + 1), RightTextX((int)levelStatsLoc.Y, 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Kills: " + level[curLevel].LevelKills, RightTextX((int)levelStatsLoc.Y + 1 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Shots Fired: " + level[curLevel].LevelShotsFired, RightTextX((int)levelStatsLoc.Y + 2 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Shots Hit: " + level[curLevel].LevelShotsHit, RightTextX((int)levelStatsLoc.Y + 3 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            
+            spriteBatch.DrawString(Assets.minecraftRegular, "Hit %: " + string.Format("{0:0.##}", level[curLevel].LevelHitPercent), RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
+            
+            spriteBatch.DrawString(Assets.minecraftBold, "PRESS SPACE TO CONTINUE", CenterTextX(Assets.minecraftBold, "PRESS SPACE TO CONTINUE", (int)(levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y))), Color.Yellow);
         }
 
+        // draw the gameplay
         private void DrawGameplay()
         {
             level[curLevel].Draw(player);
         }
 
+        /// <summary>
+        /// draw the shop
+        /// </summary>
         private void DrawShop()
         {
             // draw back ground
@@ -502,46 +719,68 @@ namespace PASS2V2
             for (int i = 0; i < SHOP_NUM_UPGRADES; i++)
             {
                 if (player.UsedBuffs[i])
-                    spriteBatch.Draw(shopButtonImgs[i], shopButtonRecs[i], Color.White * 0.5f);
+                    spriteBatch.Draw(shopButtonImgs[i], shopButtonRecs[i], Color.White * SHOP_BUTTON_USED_OPACITY);
                 else spriteBatch.Draw(shopButtonImgs[i], new Rectangle(shopButtonRecs[i].X, shopButtonRecs[i].Y, shopButtonRecs[i].Width, shopButtonRecs[i].Height), Color.White);
             }
 
             // draw the current player score on the button
-            spriteBatch.DrawString(Assets.minecraftBold, SCORE_TEXT + player.Score, CenterTextX(Assets.minecraftBold, SCORE_TEXT + player.Score, SCORE_TEXT_Y), Color.Yellow);
+            spriteBatch.DrawString(Assets.minecraftBold, "Score: " + player.Score, CenterTextX(Assets.minecraftBold, "Score: " + player.Score, SCORE_TEXT_Y), Color.Yellow);
         }
 
-
+        /// <summary>
+        /// check if a rectangle was clicked
+        /// </summary>
+        /// <param name="rectangle"></param> the rectangle
+        /// <returns></returns>
         private bool IsClickRectangle(Rectangle rectangle)
         {
-            if (mouse.LeftButton == ButtonState.Pressed && prevMouse.LeftButton != ButtonState.Pressed && rectangle.Contains(mouse.Position) )
-            {
-                return true;
-            }
+            if (mouse.LeftButton == ButtonState.Pressed && prevMouse.LeftButton != ButtonState.Pressed && rectangle.Contains(mouse.Position)) return true;
             return false;
         }
 
+        /// <summary>
+        /// center the text on the x axis, given the y axis
+        /// </summary>
+        /// <param name="font"></param> the font of the text
+        /// <param name="text"></param> the text
+        /// <param name="locY"></param> the y axis
+        /// <param name="position"></param> the position of the text relative to the screen
+        /// <returns></returns>
         public static Vector2 CenterTextX(SpriteFont font, string text, int locY, float position = 0.5f)
         {
             return new Vector2(SCREEN_WIDTH * position - (font.MeasureString(text).X / 2), locY);
         }
 
+        /// <summary>
+        /// align the text to the right
+        /// </summary>
+        /// <param name="locY"></param> the y axis
+        /// <param name="position"></param> the position of the text relative to the alignment
+        /// <returns></returns>
         public static Vector2 RightTextX(int locY, float position = 0.5f)
         {
             return new Vector2(SCREEN_WIDTH * position + TITLE_SPACING_X, locY);
         }
 
-        public static Vector2 CenterRectangleX(Rectangle rec, int locY, float position = 0.5f)
-        {
-            return new Vector2(SCREEN_WIDTH * position - (rec.Width / 2), locY);
-        }
+        /// <summary>
+        /// center the rectangle on the x axis
+        /// </summary>
+        /// <param name="width"></param> the width of the rectangle
+        /// <param name="locY"></param> the y axis
+        /// <param name="position"></param> the position of the rectangle relative to the screen
+        /// <returns></returns>
         public static Vector2 CenterRectangleX(int width, int locY, float position = 0.5f)
         {
             return new Vector2(SCREEN_WIDTH * position - (width / 2), locY);
         }
 
+        /// <summary>
+        /// DEBUG
+        /// draw the mouse 
+        /// </summary>
         private void DrawMouseLoc()
         {
-            spriteBatch.DrawString(Assets.debugFont, "Mouse: " + mouse.X + ", " + mouse.Y, new Vector2(mouse.X + 10, mouse.Y + 10), Color.White);
+            spriteBatch.DrawString(Assets.debugFont, mouse.X + ", " + mouse.Y, new Vector2(mouse.X + 10, mouse.Y + 10), Color.White);
         }
     }
 }

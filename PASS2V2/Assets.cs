@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Media;
 
 namespace PASS2V2
 {
@@ -134,6 +132,12 @@ namespace PASS2V2
             pointMutiIconImg = Load<Texture2D>("IconPoints_32");
         }
 
+        /// <summary>
+        /// method loads an asset
+        /// </summary>
+        /// <typeparam name="T"></typeparam> the type of the asset
+        /// <param name="file"></param> file to load
+        /// <returns></returns>
         private static T Load<T>(string file) => Content.Load<T>($"{loadPath}/{file}");
     }
 }

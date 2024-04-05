@@ -12,7 +12,10 @@ namespace PASS2V2
     {
 
         /// <summary>
-        /// 
+        /// constructor for the villager
+        /// points: 10
+        /// health: 1
+        /// damage: 0
         /// </summary>
         /// <param name="spriteBatch"></param>
         public Villager(SpriteBatch spriteBatch) : base (spriteBatch, new Vector2(0 - HEIGHT, Game1.rng.Next(0, Game1.SCREEN_HEIGHT - HEIGHT * 2)), new Vector2(8, 0), 10, 1, 0)
@@ -20,7 +23,13 @@ namespace PASS2V2
             skin = Assets.villagerImg;
         }
 
-        public override void Update(GameTime gameTime, Rectangle playerRec)
+
+        /// <summary>
+        /// Update the villager mob
+        /// </summary>
+        /// <param name="gameTime"></param>
+        /// <param name="player"></param> not used, however is a parameter in the base class
+        public override void Update(GameTime gameTime, Player player)
         {
             switch (state)
             {
@@ -48,11 +57,6 @@ namespace PASS2V2
 
             // check if the villager is off the screen
             if (rec.Left > Game1.SCREEN_WIDTH) state = REMOVE;
-        }
-
-        public override void Draw()
-        {
-            base.Draw();
         }
     }
 }

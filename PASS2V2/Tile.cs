@@ -1,17 +1,7 @@
-﻿// Ignore Spelling: spritebatch
-
-using Animation2D;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Media;
-using Microsoft.Xna.Framework.Content;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace PASS2V2
 {
@@ -21,7 +11,8 @@ namespace PASS2V2
         Dirt = 0,
         Grass1 = 1,
         Grass2 = 2,
-        Coblestone = 3
+        Cobblestone = 3,
+        Random = 4
     }
 
     public class Tile
@@ -46,18 +37,20 @@ namespace PASS2V2
         private Rectangle rec;
 
 
-        // property to define the location of the tile
+        /// <summary>
+        /// get the location of a tile
+        /// </summary>
         public Vector2 Location
         {
             get { return loc; }
-            set { loc = value; }
         }
 
-        // properties of the rectangle
+        /// <summary>
+        /// get the rectangle of a tile
+        /// </summary>
         public Rectangle Rectangle
         {
             get { return rec; }
-            set { rec = value; }
         }
 
         /// <summary>
@@ -68,6 +61,9 @@ namespace PASS2V2
         /// <param name="location"></param>
         public Tile(SpriteBatch spriteBatch, TileTypes type, Vector2 location)
         {
+            // check if tile is random, if so assign it a random type
+            if (type == TileTypes.Random) type = (TileTypes)Game1.rng.Next(0, 4);
+
             // set the texture of the tile based on the type
             switch (type)
             {
@@ -80,7 +76,7 @@ namespace PASS2V2
                 case TileTypes.Dirt:
                     texture = Assets.dirtImg;
                     break;
-                case TileTypes.Coblestone:
+                case TileTypes.Cobblestone:
                     texture = Assets.coblestoneImg;
                     break;
             }
