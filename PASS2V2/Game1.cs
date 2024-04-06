@@ -1,12 +1,21 @@
-﻿
+﻿//Author: Colin Wang
+//File Name: Game1.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 18, 2024, Remade on April 1, 2024
+//Modified Date: April 5, 2024
+//Description: Top down minecraft shooting game, with score tracking, upgrade shop, and tile based levels
+
 
 using GameUtility;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace PASS2V2
 {
@@ -42,6 +51,14 @@ namespace PASS2V2
         private const int MENU_BUTTON_TEXT_OFFSET_X = -5;
         private const int MENU_BUTTON_TEXT_OFFSET_Y = 5;
 
+        // player profile dimensions
+        private const int PLAYER_PROFILE_WIDTH = 70;
+        private const int PLAYER_PROFILE_HEIGHT = 70;
+
+        // player profile location
+        private const int PLAYER_PROFILE_X = 15;
+        private const int PLAYER_PROFILE_Y = 500;
+
         // number of levels
         private const int NUM_LEVELS = 5;
 
@@ -64,6 +81,9 @@ namespace PASS2V2
 
         // y location of the score text in the shop menu
         private const int SCORE_TEXT_Y = 420;
+
+        // location of high score text
+        private const int HIGH_SCORE_TEXT_Y = 170;
 
         // shop button spacing, dimensions, and opacity
         private const int SHOP_BUTTON_SPACING_Y = 30;
@@ -102,6 +122,7 @@ namespace PASS2V2
         private Rectangle[] menuButtonRecs = new Rectangle[MENU_BUTTON_NUM];
         private Button[] menuButtons = new Button[MENU_BUTTON_NUM];
         private string[] menuButtonText = { "PLAY", "STATS", "EXIT" };
+        private Button playerButton;
 
         // player
         private Player player;
@@ -147,6 +168,8 @@ namespace PASS2V2
             // set mouse to visible
             IsMouseVisible = true;
 
+            // initialize media player
+            MediaPlayer.IsRepeating = true;
 
             base.Initialize();
         }
@@ -210,10 +233,13 @@ namespace PASS2V2
             menuButtons[STATS_BUTTON_INDEX] = new Button(Assets.buttonImg, menuButtonRecs[STATS_BUTTON_INDEX], Color.White);
             menuButtons[EXIT_BUTTON_INDEX] = new Button(Assets.buttonImg, menuButtonRecs[EXIT_BUTTON_INDEX], Color.White);
 
+            playerButton = new Button(Assets.alexImg, new Rectangle(PLAYER_PROFILE_X, PLAYER_PROFILE_Y, PLAYER_PROFILE_WIDTH, PLAYER_PROFILE_HEIGHT), Color.White);
+
             // set the text as if it was not hovered
             PlayButtonExit();
             StatsButtonExit();
             ExitButtonExit();
+
 
             // initialize the button hovers and clicks
             menuButtons[PLAY_BUTTON_INDEX].Clicked += PlayButtonClick;
@@ -225,7 +251,10 @@ namespace PASS2V2
             menuButtons[EXIT_BUTTON_INDEX].Clicked += ExitButtonClick;
             menuButtons[EXIT_BUTTON_INDEX].HoverEnter += () => ExitButtonHover();
             menuButtons[EXIT_BUTTON_INDEX].HoverExit += () => ExitButtonExit();
+
+            playerButton.Clicked += PlayerButtonClick;
         }
+
 
         /// <summary>
         /// UnloadContent will be called once per game and is the place to unload
@@ -282,17 +311,32 @@ namespace PASS2V2
         /// </summary>
         private void UpdateMenu()
         {
+            // update the menu song 
+            PlayMusic(Assets.menuSong);
+
+            // update the menu buttons
             for (int i = 0; i < MENU_BUTTON_NUM; i++)
             {
                 menuButtons[i].Update(mouse);
             }
+
+            // update player button
+            playerButton.Update(mouse);
         }
 
+        /// <summary>
+        /// update the level stats and check if player wants to return to menu
+        /// </summary>
         private void UpdateStats()
         {
             // check if space is pressed, player wants to return to menu
             if (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space))
+            {
                 gameState = MENU;
+
+                // switch to menu song
+                SwitchMusic(Assets.menuSong);
+            }
         }
 
         /// <summary>
@@ -301,6 +345,9 @@ namespace PASS2V2
         /// <param name="gameTime"></param> time passed within game
         private void UpdateGameplay(GameTime gameTime)
         {
+            // update gameplay song
+            PlayMusic(Assets.levelSong);
+
             // update the level
             level[curLevel].Update(gameTime, player);
 
@@ -311,6 +358,16 @@ namespace PASS2V2
 
                 // calculate level hit percent
                 level[curLevel].LevelHitPercent = (level[curLevel].LevelShotsFired == 0) ? 0 : (float)(level[curLevel].LevelShotsHit) / level[curLevel].LevelShotsFired * 100;
+
+                // switch to level song
+                SwitchMusic(Assets.resultsSong);
+
+                // check if last level and player has beaten high score
+                if (curLevel == NUM_LEVELS - 1 && player.Score > player.HighScore && curLevel == NUM_LEVELS - 1)
+                {
+                    player.HighScore = player.Score;
+                    isHighScore = true; // show high score
+                }
             }
         }
 
@@ -325,18 +382,13 @@ namespace PASS2V2
                 // check if last level
                 if (curLevel == NUM_LEVELS - 1)
                 {
-                    // check if player has beaten high score
-                    if (player.Score > player.HighScore && curLevel == NUM_LEVELS - 1)
-                    {
-                        player.HighScore = player.Score;
-                        isHighScore = true; // show high score
-                    }
-
                     // increment games played
                     player.GamesPlayed++;
 
                     // end game, return to menu
                     gameState = MENU;
+
+                    SwitchMusic(Assets.menuSong);
 
                     // calculate total hit percent
                     int totalHit = 0;
@@ -364,10 +416,16 @@ namespace PASS2V2
                 {
                     curLevel++;
                     gameState = SHOP;
+
+                    // switch to shop song
+                    SwitchMusic(Assets.shopSong);
                 }
             }
         }
 
+        /// <summary>
+        /// update the shop of the game, and if player purchases an upgrade
+        /// </summary>
         private void UpdateShop()
         {
             for (int i = 0; i < shopButtonRecs.Length; i++)
@@ -375,16 +433,26 @@ namespace PASS2V2
                 // check if the button is clicked, if the upgrade isn't used, and if player can afford it
                 if (IsClickRectangle(shopButtonRecs[i]) && !player.UsedBuffs[i] && player.Score >= shopCost[i])
                 {
+
                     player.UsedBuffs[i] = true;
                     player.AddBuff(i); // same index of buffs in player
 
                     // update score
                     player.Score -= shopCost[i];
+
+                    // play purchase sound
+                    PlaySound(Assets.purchaseSound);
                 }
             }
 
             // check if the player is done with the shop
-            if (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space)) gameState = GAMEPLAY;
+            if (kb.IsKeyDown(Keys.Space) && !prevKb.IsKeyDown(Keys.Space))
+            {
+                gameState = GAMEPLAY;
+
+                // switch to gameplay song
+                SwitchMusic(Assets.levelSong);
+            }
         }
 
         /// <summary>
@@ -422,6 +490,12 @@ namespace PASS2V2
 
             // reset level
             ResetLevels();
+
+            // switch to level song
+            SwitchMusic(Assets.levelSong);
+            
+            // play button sound
+            PlaySound(Assets.buttonSound);
         }
 
         /// <summary>
@@ -432,6 +506,12 @@ namespace PASS2V2
             gameState = STATS;
 
             player.CalculateExtraStats(); // calculate extra stats (total kills, all time hit percentage, average shots per game, average hit percentage)
+        
+            // switch to stats song
+            SwitchMusic(Assets.resultsSong);
+
+            // play button sound
+            PlaySound(Assets.buttonSound);
         }
 
         /// <summary>
@@ -457,6 +537,10 @@ namespace PASS2V2
         /// </summary>
         private void ExitButtonClick()
         {
+
+            // play button sound
+            PlaySound(Assets.buttonSound);
+
             Exit(); // exit the game
         }
 
@@ -478,6 +562,27 @@ namespace PASS2V2
             menuButtons[EXIT_BUTTON_INDEX].SetText(Assets.minecraftBold, menuButtonText[EXIT_BUTTON_INDEX], Color.Black);
         }
 
+        /// <summary>
+        /// function when player button is clicked
+        /// </summary>
+        private void PlayerButtonClick()
+        {
+            // change the player
+            player.PlayerCharacter = (Player.Character)(((int)player.PlayerCharacter + 1) % 2);
+
+            // play button sound
+            PlaySound(Assets.buttonSound);
+
+            // update the player button image
+            // need to re-create the button, since can't change the image directly
+            playerButton = new Button(player.Skin, new Rectangle(PLAYER_PROFILE_X, PLAYER_PROFILE_Y, PLAYER_PROFILE_WIDTH, PLAYER_PROFILE_HEIGHT), Color.White);
+            playerButton.Clicked += PlayerButtonClick;
+        }
+
+
+        /// <summary>
+        /// reads the stats from the stats file
+        /// </summary>
         private void ReadStats()
         {
             try
@@ -594,9 +699,6 @@ namespace PASS2V2
             }
         }
 
-
-
-
         /// <summary>
         /// This is called when the game should draw itself.
         /// </summary>
@@ -628,7 +730,7 @@ namespace PASS2V2
             }
 
             // DEBUG
-            //DrawMouseLoc();
+            // DrawMouseLoc();
 
             spriteBatch.End();
 
@@ -651,8 +753,13 @@ namespace PASS2V2
             {
                 menuButtons[i].Draw(spriteBatch);
             }
+            playerButton.Draw(spriteBatch);
         }
 
+
+        /// <summary>
+        /// draw the stats menu
+        /// </summary>
         public void DrawStats()
         {
             // draw back ground
@@ -683,6 +790,9 @@ namespace PASS2V2
             spriteBatch.DrawString(Assets.minecraftRegular, "Enderman Kills: " + player.MobsKilled[Player.ENDERMAN_KILL_INDEX], RightTextX((int)levelStatsLoc.Y + 4 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
             spriteBatch.DrawString(Assets.minecraftRegular, "Avg. Kills: " + player.AvgKillsPerGame, RightTextX((int)levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y), 0.5f), Color.White);
             spriteBatch.DrawString(Assets.minecraftEvening, "TOTAL KILLS: " + player.TotalKills, CenterTextX(Assets.minecraftEvening, "TOTAL KILLS: " + player.TotalKills, (int)(levelStatsLoc.Y + 6 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y))), Color.Red);
+
+
+            spriteBatch.DrawString(Assets.minecraftBold, "PRESS SPACE TO GO BACK", CenterTextX(Assets.minecraftBold, "PRESS SPACE TO GO BACK", (int)(levelStatsLoc.Y + 10 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y))), Color.Yellow);
         }
 
         /// <summary>
@@ -698,6 +808,11 @@ namespace PASS2V2
 
             // draw all the stats
             spriteBatch.DrawString(Assets.minecraftEvening, "Score: " + player.Score, CenterTextX(Assets.minecraftEvening, "Score: " + player.Score, STATS_TEXT_Y), Color.Yellow);
+
+            if (isHighScore && curLevel == NUM_LEVELS - 1) // show high score
+            {
+                spriteBatch.DrawString(Assets.minecraftBold, "NEW HIGH SCORE", CenterTextX(Assets.minecraftBold, "NEW HIGH SCORE", HIGH_SCORE_TEXT_Y), Color.Orange);
+            }
 
             for (int i = 0; i < NUM_LEVELS; i++)
             {
@@ -715,7 +830,9 @@ namespace PASS2V2
             spriteBatch.DrawString(Assets.minecraftBold, "PRESS SPACE TO CONTINUE", CenterTextX(Assets.minecraftBold, "PRESS SPACE TO CONTINUE", (int)(levelStatsLoc.Y + 5 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y))), Color.Yellow);
         }
 
-        // draw the gameplay
+        /// <summary>
+        /// draw the gameplay
+        /// </summary>
         private void DrawGameplay()
         {
             level[curLevel].Draw(player);
@@ -728,6 +845,9 @@ namespace PASS2V2
         {
             // draw back ground
             spriteBatch.Draw(Assets.menuImg3, Vector2.Zero, Color.White);
+
+            // draw title
+            spriteBatch.Draw(Assets.shopTitleImg, CenterRectangleX(Assets.shopTitleImg.Width, TITLE_LOC), Color.White);
 
             // draw stats box
             spriteBatch.Draw(Assets.blankPixel, new Rectangle(0, STATS_TEXT_Y, STATS_BOX_WIDTH, STATS_BOX_HEIGHT), Color.Black * STATS_BOX_OPACITY);
@@ -742,6 +862,10 @@ namespace PASS2V2
 
             // draw the current player score on the button
             spriteBatch.DrawString(Assets.minecraftBold, "Score: " + player.Score, CenterTextX(Assets.minecraftBold, "Score: " + player.Score, SCORE_TEXT_Y), Color.Yellow);
+
+            // draw the prompt to press space to continue
+            spriteBatch.DrawString(Assets.minecraftBold, "PRESS SPACE TO CONTINUE", CenterTextX(Assets.minecraftBold, "PRESS SPACE TO CONTINUE", (int)(levelStatsLoc.Y + 10 * (int)(TITLE_SPACING_Y + Assets.minecraftRegular.MeasureString(" ").Y))), Color.Yellow);
+
         }
 
         /// <summary>
@@ -789,6 +913,37 @@ namespace PASS2V2
         public static Vector2 CenterRectangleX(int width, int locY, float position = 0.5f)
         {
             return new Vector2(SCREEN_WIDTH * position - (width / 2), locY);
+        }
+
+        /// <summary>
+        /// play a sound
+        /// </summary>
+        /// <param name="sound"></param> the sound
+        /// <param name="volume"></param> the volume, defaults to 1.0
+        public static void PlaySound(SoundEffect sound, float volume = 1.0f)
+        {
+            sound.Play(volume, 0.0f, 0.0f);
+        }
+
+        /// <summary>
+        /// play music
+        /// </summary>
+        /// <param name="song"></param> the song
+        /// <param name="volume"></param> the volume, defaults to 1.0
+        public static void PlayMusic(Song song, float volume = 1.0f)
+        {
+            MediaPlayer.Volume = volume;
+            if (MediaPlayer.State != MediaState.Playing) MediaPlayer.Play(song);
+        }
+
+        /// <summary>
+        /// switch the music
+        /// </summary>
+        /// <param name="song"></param> the song to switch to
+        public void SwitchMusic(Song song)
+        {
+            MediaPlayer.Stop();
+            PlayMusic(song);
         }
 
         /// <summary>

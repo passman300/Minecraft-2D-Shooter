@@ -1,6 +1,12 @@
-﻿using GameUtility;
+﻿//Author: Colin Wang
+//File Name: Player.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 26, 2024, Remade on April 1, 2024
+//Modified Date: April 4, 2024
+//Description: Player class for the game, manages all player update, movements, upgrades, etc.
+
+using GameUtility;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
@@ -9,6 +15,13 @@ namespace PASS2V2
 {
     public class Player
     {
+        // character options
+        public enum Character
+        {
+            Alex = 0,
+            Steve = 1
+        }
+
         // player upgrades
         public const int NUM_UPGRADES = 4;
         public const int DOUBLE_SPEED_INDEX = 0;
@@ -31,7 +44,7 @@ namespace PASS2V2
 
         // player base speed
         public const int BASE_SPEED = 3;
-        
+
         // player shooting speed
         public const float BASE_SHOOTING_DUR = 1000f / 3; // 3 shots per second
 
@@ -42,6 +55,9 @@ namespace PASS2V2
 
         // player skin
         private Texture2D skin;
+
+        // player character
+        private Character character;
 
         // player location and rectangle
         private Vector2 loc;
@@ -70,6 +86,7 @@ namespace PASS2V2
         private float avgShotsPerGame = 0;
         private float avgKillsPerGame = 0;
 
+        // array of number of each mob killed
         private int[] mobsKilled = new int[Mob.MOB_COUNT];
 
         // player damage
@@ -125,56 +142,82 @@ namespace PASS2V2
             set { highScore = value; }
         }
 
+        /// <summary>
+        /// get and set the player score
+        /// </summary>
         public int GamesPlayed
         {
             get { return gamesPlayed; }
             set { gamesPlayed = value; }
         }
 
+        /// <summary>
+        /// get and set the number of shots fired
+        /// </summary>
         public int ShotsFired
         {
             get { return shotsFired; }
             set { shotsFired = value; }
         }
 
+        /// <summary>
+        /// get and set the number of shots that hit
+        /// </summary>
         public int ShotsHit
         {
             get { return shotsHit; }
             set { shotsHit = value; }
         }
 
+        /// <summary>
+        /// get and set the top hit percentage
+        /// </summary>
         public float TopHitPercent
         {
             get { return topHitPercent; }
             set { topHitPercent = value; }
         }
 
+        /// <summary>
+        /// get and set the mobs killed
+        /// </summary>
         public int[] MobsKilled
         {
             get { return mobsKilled; }
             set { mobsKilled = value; }
         }
 
+        /// <summary>
+        /// get the total kills
+        /// </summary>
         public int TotalKills
         {
             get { return totalKills; }
         }
 
+        /// <summary>
+        /// get the all time hit percentage
+        /// </summary>
         public float AllTimeHitPercent
         {
             get { return allTimeHitPercent; }
         }
 
+        /// <summary>
+        /// get the average shots per game
+        /// </summary>
         public float AvgShotsPerGame
         {
             get { return avgShotsPerGame; }
         }
 
+        /// <summary>
+        /// get the average kills per game
+        /// </summary>
         public float AvgKillsPerGame
         {
             get { return avgKillsPerGame; }
         }
-
 
         /// <summary>
         /// get and set the player score
@@ -182,8 +225,8 @@ namespace PASS2V2
         public int Score
         {
             get { return score; }
-            set 
-            { 
+            set
+            {
                 int delta = value - score;
                 // check if player has double points
                 if (buffs[DOUBLE_POINTS_INDEX] && delta > 0) delta *= 2; // double point buff is handled when reading the score
@@ -196,7 +239,7 @@ namespace PASS2V2
         /// </summary>
         public int Damage
         {
-            get 
+            get
             {
                 if (buffs[TRIPLE_DAMAGE_INDEX]) return damage * 3; // triple damage buff is handled when reading the damage
                 return damage;
@@ -211,18 +254,53 @@ namespace PASS2V2
             get { return buffs; }
         }
 
+        /// <summary>
+        /// get and set if the player is feared
+        /// </summary>
         public bool IsFear
         {
             get { return isFear; }
             set { isFear = value; }
         }
 
-        public Player(SpriteBatch spriteBatch)
+        /// <summary>
+        /// get and set the player character (alex or steve)
+        /// </summary>
+        public Character PlayerCharacter
+        {
+            get { return character; }
+            set
+            {
+                character = value;
+                skin = character == Character.Alex ? Assets.alexImg : Assets.steveImg;
+            }
+        }
+
+        /// <summary>
+        /// get the player skin
+        /// </summary>
+        public Texture2D Skin
+        {
+            get { return skin; }
+        }
+
+        /// <summary>
+        /// constructor of the player
+        /// </summary>
+        /// <param name="spriteBatch"></param>
+        /// <param name="character"></param> the character of the player
+        public Player(SpriteBatch spriteBatch, Character character = Character.Alex)
         {
             this.spriteBatch = spriteBatch;
 
-            skin = Assets.alexImg;
+            // set the image of the player
+            if (character == Character.Alex) skin = Assets.alexImg;
+            else skin = Assets.steveImg;
 
+            // store the character
+            this.character = character;
+
+            // set the player location
             loc = new Vector2(Game1.SCREEN_WIDTH / 2 - WIDTH / 2, Y_LOC);
             rec = new Rectangle((int)loc.X, (int)loc.Y, WIDTH, HEIGHT);
 
@@ -293,7 +371,7 @@ namespace PASS2V2
         /// </summary>
         public void Draw()
         {
-            if (isFear) 
+            if (isFear)
                 spriteBatch.Draw(skin, rec, Color.PowderBlue);
             else spriteBatch.Draw(skin, rec, Color.White);
         }
@@ -319,10 +397,13 @@ namespace PASS2V2
             buffs[buffIndex] = true;
         }
 
+        /// <summary>
+        /// calculate extra stats, total kills, all time hit percentage, average shots per game, average hit percentage
+        /// </summary>
         public void CalculateExtraStats()
         {
             // total kills
-            foreach(int kills in mobsKilled) totalKills += kills;
+            foreach (int kills in mobsKilled) totalKills += kills;
 
             // all time hit percentage
             allTimeHitPercent = (shotsFired == 0) ? 0 : (float)shotsHit / shotsFired * 100;
@@ -330,8 +411,8 @@ namespace PASS2V2
             // average shots per game
             avgShotsPerGame = (gamesPlayed == 0) ? 0 : (float)shotsFired / gamesPlayed;
 
-            // average hit percentage
-            avgShotsPerGame = (gamesPlayed == 0) ? 0 : (float)shotsHit / gamesPlayed;
+            // average kill percentage
+            avgKillsPerGame = (gamesPlayed == 0) ? 0 : (float)totalKills / gamesPlayed;
         }
     }
 }

@@ -1,4 +1,11 @@
-﻿using Microsoft.Xna.Framework;
+﻿//Author: Colin Wang
+//File Name: Tile.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 28, 2024, Remade on April 1, 2024
+//Modified Date: April 2, 2024
+//Description: Tile class for the game, manages the tile properties, location, texture, and type
+
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 

@@ -1,7 +1,15 @@
-﻿using System;
+﻿//Author: Colin Wang, based on Alexander Protuc Assets class
+//File Name: Assets.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 20, 2024, Remade on April 1, 2024
+//Modified Date: April 5, 2024
+//Description: Assets class for the game, loads all assets (fonts, images, sounds, etc.) to the game
+
+using System;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Media;
 
 namespace PASS2V2
 {
@@ -69,6 +77,22 @@ namespace PASS2V2
         public static Texture2D gameTitleImg;
         public static Texture2D shopTitleImg;
         public static Texture2D statsTitleImg;
+
+        // audio
+        public static SoundEffect hitSound;
+        public static SoundEffect bowSound;
+        public static SoundEffect endermanScreamSound;
+        public static SoundEffect endermanTpSound;
+        public static SoundEffect buttonSound;
+        public static SoundEffect explodeSound;
+        public static SoundEffect purchaseSound;
+        public static SoundEffect shieldHitSound;
+
+        // songs
+        public static Song menuSong;
+        public static Song levelSong;
+        public static Song resultsSong;
+        public static Song shopSong;
 
         /// <summary>
         /// method loads all assets to the game
@@ -140,6 +164,28 @@ namespace PASS2V2
             gameTitleImg = Load<Texture2D>("Title");
             shopTitleImg = Load<Texture2D>("ShopTitle");
             statsTitleImg = Load<Texture2D>("StatsTitle");
+
+            // change to audio file path
+            loadPath = "Audio/Sounds";
+
+            // load audio
+            hitSound = Load<SoundEffect>("ArrowImpact");
+            bowSound = Load<SoundEffect>("BowShoot");
+            endermanScreamSound = Load<SoundEffect>("EndermanScream");
+            endermanTpSound = Load<SoundEffect>("EndermanTeleport");
+            buttonSound = Load<SoundEffect>("ButtonClick");
+            explodeSound = Load<SoundEffect>("Explode");
+            purchaseSound = Load<SoundEffect>("Purchase");
+            shieldHitSound = Load<SoundEffect>("ShieldHit");
+
+            // change to song file path
+            loadPath = "Audio/Music";
+
+            // load songs
+            menuSong = Load<Song>("Menu");
+            levelSong = Load<Song>("Gameplay");
+            resultsSong = Load<Song>("Results");
+            shopSong = Load<Song>("Shop");
         }
 
         /// <summary>

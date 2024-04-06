@@ -1,4 +1,11 @@
-﻿using GameUtility;
+﻿//Author: Colin Wang
+//File Name: Skeleton.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 29, 2024, Remade on April 1, 2024
+//Modified Date: April 3, 2024
+//Description: Skeleton class for the game, manages the skeleton mob, spiral movement, shooting, etc.
+
+using GameUtility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;

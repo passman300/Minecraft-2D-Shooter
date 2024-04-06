@@ -1,4 +1,11 @@
-﻿using Microsoft.Xna.Framework;
+﻿//Author: Colin Wang
+//File Name: Pillager.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 29, 2024, Remade on April 1, 2024
+//Modified Date: April 2, 2024
+//Description: Pillager class for the game, manages the pillager mob sinusoidal movement, draw, shield, etc.
+
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 

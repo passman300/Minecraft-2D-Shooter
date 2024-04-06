@@ -1,4 +1,11 @@
-﻿using GameUtility;
+﻿//Author: Colin Wang
+//File Name: Mob.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 25, 2024, Remade on April 1, 2024
+//Modified Date: April 2, 2024
+//Description: Base mob class for the game, manages general mob variables, and draw and update methods
+
+using GameUtility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -7,6 +14,7 @@ namespace PASS2V2
 {
     public class Mob
     {
+        // number of mobs
         public const int MOB_COUNT = 5;
 
         // mob dimensions
@@ -175,7 +183,6 @@ namespace PASS2V2
         /// </summary>
         public virtual void Draw()
         {
-
 			switch (state)
 			{
 				case ALIVE:

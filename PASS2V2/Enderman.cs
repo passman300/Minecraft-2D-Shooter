@@ -1,4 +1,11 @@
-﻿using GameUtility;
+﻿//Author: Colin Wang
+//File Name: Enderman.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: April 3, 2024
+//Modified Date: April 4, 2024
+//Description: Enderman class for the game, manages the enderman mob teleportation, spawning, and scaring
+
+using GameUtility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -94,6 +101,11 @@ namespace PASS2V2
             }
         }
 
+        /// <summary>
+        /// update the enderman based on if it should be teleported
+        /// </summary>
+        /// <param name="gameTime"></param>
+        /// <param name="player"></param>
         private void UpdateTeleport(GameTime gameTime, Player player)
         {
             tpTimer.Update(gameTime);
@@ -148,6 +160,9 @@ namespace PASS2V2
                     // apply scaring for half a second
                     isScaring = true;
                     scaringTimer.ResetTimer(true);
+
+                    // play teleport sound
+                    Game1.PlaySound(Assets.endermanTpSound);
                 }
             }
             

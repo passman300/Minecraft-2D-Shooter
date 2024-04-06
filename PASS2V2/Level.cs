@@ -1,4 +1,11 @@
-﻿using GameUtility;
+﻿//Author: Colin Wang
+//File Name: Level.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 24, 2024, Remade on April 1, 2024
+//Modified Date: April 5, 2024
+//Description: Level class of the game, manages the arrows, mobs, tiles, and player within the level
+
+using GameUtility;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -166,8 +173,8 @@ namespace PASS2V2
 
             // set the title locations 
             introTitleLoc = Game1.CenterTextX(Assets.minecraftEvening, "INTRODUCTION", INSTRUCTION_TEXT_Y);
-            moveTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, "MOVE: A,D or Arrows", (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(" ").Y + TITLE_SPACING_Y), 0.3333f);
-            shootTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, "PRESS SPACE TO SHOOT", (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(" ").Y + TITLE_SPACING_Y), 0.6666f);
+            moveTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, "MOVE: A,D or Arrows", (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(" ").Y + TITLE_SPACING_Y), 0.30f);
+            shootTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, "PRESS SPACE TO SHOOT", (int)(introTitleLoc.Y + Assets.minecraftEvening.MeasureString(" ").Y + TITLE_SPACING_Y), 0.70f);
             goalTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, "GOAL: Kill mobs before they escape", (int)(shootTitleLoc.Y + Assets.minecraftRegular.MeasureString(" ").Y + TITLE_SPACING_Y));
             tipsTitleLoc = Game1.CenterTextX(Assets.minecraftRegular, "TIPS: Watch for movement patterns and unique abilities", (int)(goalTitleLoc.Y + Assets.minecraftRegular.MeasureString(" ").Y + TITLE_SPACING_Y));
             beginTitleLoc = Game1.CenterTextX(Assets.minecraftBold, "PRESS SPACE TO BEGIN", (int)(tipsTitleLoc.Y + Assets.minecraftRegular.MeasureString(" ").Y + TITLE_SPACING_Y));
@@ -231,6 +238,9 @@ namespace PASS2V2
 
                                 case (int)TileTypes.Cobblestone:
                                     tiles.Add(new Tile(spriteBatch, TileTypes.Cobblestone, curTileLoc));
+                                    break;
+                                case (int)TileTypes.Random:
+                                    tiles.Add(new Tile(spriteBatch, TileTypes.Random, curTileLoc));
                                     break;
                             }
                         }
@@ -412,6 +422,9 @@ namespace PASS2V2
                     player.ShotsFired++;
 
                     levelShotsFired++;
+
+                    // play shoot sound
+                    Game1.PlaySound(Assets.bowSound);
                 }
             }
         }
@@ -430,13 +443,23 @@ namespace PASS2V2
                 if (mobs[i] is Creeper && !((Creeper)mobs[i]).IsExplodeApplied && mobs[i].State == Creeper.EXPLODE)
                 {
                     ((Creeper)mobs[i]).IsExplodeApplied = true;
+
+                    // subtract the damage from the score
                     levelScore = Math.Max(levelScore - mobs[i].Damage, 0);
                     player.Score = Math.Max(levelScore - mobs[i].Damage, 0);
+
+                    // play explode sound
+                    Game1.PlaySound(Assets.explodeSound);
                 }
                 // check if the mob is a enderman, and if the enderman is scaring the player. If so set the player as fear
                 else if (mobs[i] is Enderman)
                 {
-                    if (((Enderman)mobs[i]).IsScaring && mobs[i].State == Mob.ALIVE) player.IsFear = true;
+                    if (((Enderman)mobs[i]).IsScaring && mobs[i].State == Mob.ALIVE)
+                    {
+                        player.IsFear = true;
+
+                        Game1.PlaySound(Assets.endermanScreamSound, 0.4f); // play the scream sound, but not too loud
+                    }
                     else player.IsFear = false;
                 }
 
@@ -445,6 +468,9 @@ namespace PASS2V2
                 {
                     // add a new arrow from the center of the mob going down
                     arrows.Add(new Arrow(spriteBatch, mobs[i].Location + mobs[i].ShootLocOffset, Arrow.ArrowDirection.Down, Color.Coral, mobs[i].Damage));
+                
+                    // play the shoot sound
+                    Game1.PlaySound(Assets.bowSound);
                 }
 
                 // check if the mob is need to be removed
@@ -464,6 +490,9 @@ namespace PASS2V2
             }
         }
 
+        /// <summary>
+        /// spawn a new mob with a random odds of the level
+        /// </summary>
         private void SpawnMob()
         {
             int randNum = Game1.rng.Next(0, 100);
@@ -496,7 +525,11 @@ namespace PASS2V2
                         // check if the mob has a shield
                         if (mobs[j].IsShield)
                         {
+                            // remove the shield
                             mobs[j].IsShield = false;
+
+                            // play the shield sound
+                            Game1.PlaySound(Assets.shieldHitSound);
                         }
                         else
                         {
@@ -536,6 +569,9 @@ namespace PASS2V2
                                         break;
                                 }
                             }
+
+                            // play the hit sound
+                            Game1.PlaySound(Assets.hitSound);
                         }
 
                         arrows[i].State = Arrow.ArrowState.Remove;
@@ -590,6 +626,10 @@ namespace PASS2V2
 
         }
 
+        /// <summary>
+        /// draw the pre level information
+        /// </summary>
+        /// <param name="player"></param>
         private void DrawPreLevel(Player player)
         {
             // draw title box
@@ -598,7 +638,7 @@ namespace PASS2V2
             // draw introduction and tips text
             spriteBatch.DrawString(Assets.minecraftEvening, "INTRODUCTION", introTitleLoc, Color.CornflowerBlue);
             spriteBatch.DrawString(Assets.minecraftRegular, "MOVE: A,D or Arrows", moveTitleLoc, Color.White);
-            spriteBatch.DrawString(Assets.minecraftRegular, "SHOOT: Space", shootTitleLoc, Color.White);
+            spriteBatch.DrawString(Assets.minecraftRegular, "Press SPACE to SHOOT", shootTitleLoc, Color.White);
             spriteBatch.DrawString(Assets.minecraftRegular, "GOAL: Kill mobs before they escape", goalTitleLoc, Color.White);
             spriteBatch.DrawString(Assets.minecraftRegular, "TIPS: Watch for movement patterns and unique abilities", tipsTitleLoc, Color.White);
             spriteBatch.DrawString(Assets.minecraftBold, "PRESS SPACE TO BEGIN", beginTitleLoc, Color.Yellow);
@@ -638,7 +678,8 @@ namespace PASS2V2
                 else spriteBatch.Draw(buffIconImgs[i], buffIconLocs[i], Color.White * 0.5f);
             }
 
-            DEBUG_MENU(player);
+            // DEBUG
+            // DEBUG_MENU(player);
         }
 
         /// <summary>
@@ -668,11 +709,18 @@ namespace PASS2V2
             foreach (Tile tile in tiles) { tile.Draw(); }
         }
 
+        /// <summary>
+        /// Draws the players score
+        /// </summary>
+        /// <param name="playerScore"></param>
         private void DrawScore(int playerScore)
         {
             spriteBatch.DrawString(Assets.minecraftRegular, "Score: " + playerScore, new Vector2(SCORE_DISPLAY_X, SCORE_DISPLAY_Y), Color.Yellow);
         }
 
+        /// <summary>
+        /// Resets the level stats
+        /// </summary>
         public void LevelReset()
         {
             levelState = LevelStates.PreLevel;
@@ -685,6 +733,10 @@ namespace PASS2V2
             arrows.Clear();
         }
 
+        /// <summary>
+        /// DEBUG MENU of level
+        /// </summary>
+        /// <param name="player"></param>
         private void DEBUG_MENU(Player player)
         {
             spriteBatch.DrawString(Assets.debugFont, "MOBS LIST: " + mobs.Count, new Vector2(3, 0), Color.White);

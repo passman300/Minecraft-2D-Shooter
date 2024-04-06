@@ -1,10 +1,14 @@
-﻿using Microsoft.Xna.Framework;
+﻿//Author: Colin Wang
+//File Name: Villager.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 28, 2024, Remade on April 1, 2024
+//Modified Date: April 1, 2024
+//Description: Villager class for the game, manages the villager mob movement
+
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace PASS2V2
 {

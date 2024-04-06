@@ -1,4 +1,11 @@
-﻿using Microsoft.Xna.Framework;
+﻿//Author: Colin Wang
+//File Name: Arrow.cs
+//Project Name: PASS2 a Minecraft Shooter
+//Created Date: March 29, 2024, Remade on April 1, 2024
+//Modified Date: April 1, 2024
+//Description: Arrow class for the game, manages the arrow movement, direction, damage, color, etc.
+
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace PASS2V2
@@ -142,6 +149,9 @@ namespace PASS2V2
             if (rec.Bottom <= 0 || rec.Top >= Game1.SCREEN_HEIGHT) state = ArrowState.Remove;
         }
 
+        /// <summary>
+        /// draw the arrow
+        /// </summary>
         public void Draw()
         {
             // note the arrows, hitbox (rec) is off by one pixel to the real location
