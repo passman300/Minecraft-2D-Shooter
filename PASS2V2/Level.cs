@@ -468,7 +468,7 @@ namespace PASS2V2
                 {
                     // add a new arrow from the center of the mob going down
                     arrows.Add(new Arrow(spriteBatch, mobs[i].Location + mobs[i].ShootLocOffset, Arrow.ArrowDirection.Down, Color.Coral, mobs[i].Damage));
-                
+
                     // play the shoot sound
                     Game1.PlaySound(Assets.bowSound);
                 }
@@ -742,7 +742,7 @@ namespace PASS2V2
             spriteBatch.DrawString(Assets.debugFont, "MOBS LIST: " + mobs.Count, new Vector2(3, 0), Color.White);
             spriteBatch.DrawString(Assets.debugFont, "MOBS SPAWNED: " + mobsSpawned, new Vector2(3, 10), Color.White);
             spriteBatch.DrawString(Assets.debugFont, "ARROWS LIST: " + arrows.Count, new Vector2(3, 20), Color.White);
-        
+
             spriteBatch.DrawString(Assets.debugFont, "Player Damage" + player.Damage, new Vector2(3, 30), Color.White);
         }
     }
